@@ -1,13 +1,12 @@
 from pythonforandroid.recipe import Recipe
 from pythonforandroid.toolchain import current_directory, shprint
 import sh
-import os
 
 
 class OpusFileRecipe(Recipe):
     version = "0.12"
     url = "https://downloads.xiph.org/releases/opus/opusfile-{version}.tar.gz"
-    depends = ['libogg']
+    depends = ['libogg', 'libopus']
     built_libraries = {'libopusfile.so': '.libs'}
 
     def build_arch(self, arch):
@@ -21,17 +20,17 @@ class OpusFileRecipe(Recipe):
                 "--disable-largefile",
             ]
 
-            cwd = os.getcwd()
-            ogg_include_path = cwd.replace("opusfile", "libogg")
-            env["CPPFLAGS"] += f" -I{ogg_include_path}/include"
+            libogg_recipe = Recipe.get_recipe('libogg', self.ctx)
+            libopus_recipe = Recipe.get_recipe('libopus', self.ctx)
+            libogg_dir = libogg_recipe.get_build_dir(arch.arch)
+            libopus_dir = libopus_recipe.get_build_dir(arch.arch)
 
-            # libogg_recipe = Recipe.get_recipe('libogg', self.ctx)
-            # env['CFLAGS'] += libogg_recipe.include_flags(arch)
-
-            # openssl_recipe = Recipe.get_recipe('openssl', self.ctx)
-            # env['CFLAGS'] += openssl_recipe.include_flags(arch)
-            # env['LDFLAGS'] += openssl_recipe.link_dirs_flags(arch)
-            # env['LIBS'] = openssl_recipe.link_libs_flags()
+            env['DEPS_CFLAGS'] = '-I{}/include -I{}/include'.format(
+                libogg_dir, libopus_dir
+            )
+            env['DEPS_LIBS'] = '-L{}/.libs -logg -L{}/.libs -lopus'.format(
+                libogg_dir, libopus_dir
+            )
             
             configure = sh.Command('./configure')
             shprint(configure, *flags, _env=env)
