@@ -31,6 +31,9 @@ class Codec2Recipe(Recipe):
     def build_arch(self, arch):        
         with current_directory(self.get_build_dir(arch.arch)):
             env = self.get_recipe_env(arch)
+            env['PATH'] = '{}:{}'.format(
+                self.get_recipe_dir(), env.get('PATH', '')
+            )
             flags = [
                 "..",
                 "--log-level=TRACE",
