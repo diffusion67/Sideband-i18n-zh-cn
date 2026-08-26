@@ -1,6 +1,8 @@
 Sideband <img align="right" src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg"/>
 =========
 
+[简体中文说明](README.zh-CN.md)
+
 *This repository is [a public mirror](./MIRROR.md). All development is happening elsewhere. While new releases are posted here, the latest source code is only available over Reticulum itself.*
 
 To understand the foundational philosophy and goals of this system, read the [Zen of Reticulum](Zen%20of%20Reticulum.md).

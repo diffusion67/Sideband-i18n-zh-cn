@@ -425,6 +425,14 @@ else:
     from kivymd.uix.button import MDRectangleFlatButton
     from kivymd.uix.dialog import MDDialog
     from kivymd.color_definitions import colors
+    from .i18n import localize_kv
+
+    _builder_load_string = Builder.load_string
+
+    def _localized_load_string(layout, *args, **kwargs):
+        return _builder_load_string(localize_kv(layout), *args, **kwargs)
+
+    Builder.load_string = _localized_load_string
     from sideband.sense import Telemeter
     from mapview import CustomMapMarker
     from mapview.mbtsource import MBTilesMapSource
