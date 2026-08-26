@@ -864,6 +864,20 @@ class SidebandApp(MDApp):
         LabelBase.register(name="chinese",
                            fn_regular=os.path.join(fb_path, "NotoSansSC-Regular.ttf"))
 
+        # The bundled Roboto fonts do not contain Chinese glyphs. KivyMD uses
+        # these aliases for the application UI, so replace only its text-font
+        # aliases with the bundled Simplified Chinese font. The separate Icons
+        # alias remains unchanged.
+        chinese_font = os.path.join(fb_path, "NotoSansSC-Regular.ttf")
+        for font_name in ("Roboto", "RobotoThin", "RobotoLight", "RobotoMedium", "RobotoBlack"):
+            LabelBase.register(
+                name=font_name,
+                fn_regular=chinese_font,
+                fn_bold=chinese_font,
+                fn_italic=chinese_font,
+                fn_bolditalic=chinese_font,
+            )
+
         LabelBase.register(name="korean",
                            fn_regular=os.path.join(fb_path, "NotoSansKR-Regular.ttf"))
 
