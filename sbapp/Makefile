@@ -67,9 +67,6 @@ else
 endif
 
 fetchshare:
-ifeq ($(SIDEBAND_SKIP_SHARE_FETCH),1)
-	mkdir -p ./share/pkg ./share/mirrors
-else
 	-(rm ./share/pkg/*)
 	-(rm ./share/mirrors/* -r)
 	cp ../../dist_archive/rns-1.1.5-py3-none-any.whl ./share/pkg/
@@ -83,11 +80,6 @@ else
 	mkdir ./share/mirrors/rnode-flasher
 	cp ../../rnode-flasher/RNode_Flasher.html ./share/mirrors/rnode-flasher
 	-(rm ./share/mirrors/rnode-flasher/.git -rf)
-endif
-
-fetchapk:
-	mkdir -p ../dist
-	cp ./bin/*.apk ../dist/
 
 release:
 	buildozer android release
