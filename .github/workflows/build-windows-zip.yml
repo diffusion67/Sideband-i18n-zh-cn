@@ -59,6 +59,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sideband-windows-zip-${{ github.run_number }}
-          path: Sideband_*.zip
+          path: Sideband_*/**
           if-no-files-found: warn
           retention-days: 14
