@@ -2,7 +2,6 @@ from pythonforandroid.recipe import Recipe
 from pythonforandroid.toolchain import current_directory, shprint
 import sh
 import os
-import time
 
 
 class OpusFileRecipe(Recipe):
@@ -34,10 +33,6 @@ class OpusFileRecipe(Recipe):
             # env['LDFLAGS'] += openssl_recipe.link_dirs_flags(arch)
             # env['LIBS'] = openssl_recipe.link_libs_flags()
             
-            from rich.pretty import pprint
-            pprint(env)
-            time.sleep(5)
-
             configure = sh.Command('./configure')
             shprint(configure, *flags, _env=env)
             shprint(sh.make, _env=env)
