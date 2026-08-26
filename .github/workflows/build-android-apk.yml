@@ -34,6 +34,9 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/dependencies/LXMF" "$GITHUB_WORKSPACE/../LXMF"
           ln -s "$GITHUB_WORKSPACE/dependencies/LXST" "$GITHUB_WORKSPACE/../LXST"
 
+      - name: Create build environment directory
+        run: mkdir -p environment
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -58,7 +61,10 @@ jobs:
           echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> "$GITHUB_ENV"
 
       - name: Build APK
-        run: make apk
+        working-directory: sbapp
+        run: |
+          make apk SIDEBAND_SKIP_SHARE_FETCH=1
+          make fetchapk
 
       - name: Upload APK
         if: always()

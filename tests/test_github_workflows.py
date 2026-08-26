@@ -39,6 +39,7 @@ class GitHubWorkflowContractTests(unittest.TestCase):
         for fragment in (
             "runs-on: ubuntu-22.04",
             "make apk",
+            "make fetchapk",
             "path: dist/*.apk",
             "Reticulum",
             "LXMF",
