@@ -61,7 +61,7 @@ ifneq (,$(wildcard .buildozer/android/platform/build-arm64-v8a/dists/sideband/sr
 else
 	@(echo Prebaking build before patching files...)
 	@(sleep 2)
-	-(buildozer android release)
+	buildozer android release
 	@(echo Prebake finished, applying patches and rebuilding...)
 	@(sleep 2)
 endif

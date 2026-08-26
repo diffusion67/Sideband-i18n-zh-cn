@@ -68,8 +68,19 @@ jobs:
           SIDEBAND_SKIP_SHARE_FETCH: 1
           SIDEBAND_LXST_SOURCE_DIR: ${{ github.workspace }}/dependencies/LXST
         run: |
-          make apk
-          make fetchapk
+          for attempt in 1 2 3; do
+            if make apk && make fetchapk; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+
+            delay=$((attempt * 30))
+            echo "APK build failed; retrying in ${delay} seconds (attempt ${attempt}/3)..."
+            sleep "$delay"
+          done
 
       - name: Upload APK
         if: always()
