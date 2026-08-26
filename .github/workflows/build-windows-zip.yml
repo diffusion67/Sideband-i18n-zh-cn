@@ -50,6 +50,8 @@ jobs:
 
       - name: Build Windows ZIP
         shell: cmd
+        env:
+          KIVY_GL_BACKEND: mock
         run: winbuild.bat
 
       - name: Upload Windows ZIP
