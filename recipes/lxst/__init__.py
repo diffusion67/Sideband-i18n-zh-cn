@@ -4,7 +4,8 @@ Android Bluetooth Low Energy
 from pythonforandroid.recipe import PythonRecipe
 from pythonforandroid.toolchain import current_directory, info, shprint
 import sh
-from os.path import join
+from os import environ
+from os.path import isdir, join
 
 
 class LXSTRecipe(PythonRecipe):
@@ -19,11 +20,21 @@ class LXSTRecipe(PythonRecipe):
         shprint(sh.rm, '-rf', build_dir)
         shprint(sh.mkdir, build_dir)
 
-        srcs = ('/home/markqvist/Information/Source/LXST/LXST', '/home/markqvist/Information/Source/LXST/setup.py', '/home/markqvist/Information/Source/LXST/README.md')
+        source_dir = environ.get(
+            'SIDEBAND_LXST_SOURCE_DIR',
+            join(self.get_recipe_dir(), '..', '..', '..', 'LXST')
+        )
+        if not isdir(source_dir):
+            raise RuntimeError(
+                'LXST source directory was not found: {}'.format(source_dir)
+            )
+
+        srcs = ('LXST', 'setup.py', 'README.md')
 
         for filename in srcs:
-            print(f"Copy {join(self.get_recipe_dir(), filename)} to {build_dir}")
-            shprint(sh.cp, '-a', join(self.get_recipe_dir(), filename),
+            source = join(source_dir, filename)
+            print(f"Copy {source} to {build_dir}")
+            shprint(sh.cp, '-a', source,
                     build_dir)
 
     def postbuild_arch(self, arch):

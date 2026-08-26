@@ -66,6 +66,7 @@ jobs:
       - name: Build APK
         env:
           SIDEBAND_SKIP_SHARE_FETCH: 1
+          SIDEBAND_LXST_SOURCE_DIR: ${{ github.workspace }}/dependencies/LXST
         run: |
           make apk
           make fetchapk
