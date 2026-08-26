@@ -23,7 +23,7 @@ class GitHubWorkflowContractTests(unittest.TestCase):
         for line in lines[on_lines[0] + 1 :]:
             if line and not line.startswith((" ", "\t")):
                 break
-            match = re.fullmatch(r"  ([A-Za-z_][A-Za-z0-9_-]*):\s*", line)
+            match = re.match(r"  ([A-Za-z_][A-Za-z0-9_-]*):", line)
             if match:
                 event_keys.append(match.group(1))
         self.assertEqual(event_keys, ["workflow_dispatch"])
