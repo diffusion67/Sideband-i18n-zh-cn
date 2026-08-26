@@ -10,11 +10,21 @@ def read_workflow(filename):
 
 
 class GitHubWorkflowContractTests(unittest.TestCase):
+    def assert_manual_dispatch_only(self, workflow):
+        self.assertIn("workflow_dispatch:", workflow)
+        for trigger in ("push:", "pull_request:", "schedule:", "workflow_call:"):
+            with self.subTest(trigger=trigger):
+                self.assertNotIn(trigger, workflow)
+
+        for prohibited in ("release", "signing", "secrets"):
+            with self.subTest(prohibited=prohibited):
+                self.assertNotIn(prohibited, workflow.lower())
+
     def test_android_workflow_contract(self):
         workflow = read_workflow("build-android-apk.yml")
 
+        self.assert_manual_dispatch_only(workflow)
         for fragment in (
-            "workflow_dispatch:",
             "runs-on: ubuntu-22.04",
             "make apk",
             "path: dist/*.apk",
@@ -24,13 +34,11 @@ class GitHubWorkflowContractTests(unittest.TestCase):
         ):
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, workflow)
-        self.assertNotIn("push:", workflow)
-
     def test_windows_workflow_contract(self):
         workflow = read_workflow("build-windows-zip.yml")
 
+        self.assert_manual_dispatch_only(workflow)
         for fragment in (
-            "workflow_dispatch:",
             "runs-on: windows-2022",
             "winbuild.bat",
             "path: Sideband_*.zip",
@@ -40,8 +48,6 @@ class GitHubWorkflowContractTests(unittest.TestCase):
         ):
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, workflow)
-        self.assertNotIn("push:", workflow)
-
 
 if __name__ == "__main__":
     unittest.main()
