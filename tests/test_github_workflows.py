@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -11,10 +12,21 @@ def read_workflow(filename):
 
 class GitHubWorkflowContractTests(unittest.TestCase):
     def assert_manual_dispatch_only(self, workflow):
-        self.assertIn("workflow_dispatch:", workflow)
-        for trigger in ("push:", "pull_request:", "schedule:", "workflow_call:"):
-            with self.subTest(trigger=trigger):
-                self.assertNotIn(trigger, workflow)
+        header, separator, _ = workflow.partition("\njobs:")
+        self.assertTrue(separator, "workflow must contain a jobs section")
+
+        lines = header.splitlines()
+        on_lines = [index for index, line in enumerate(lines) if re.fullmatch(r"on:", line)]
+        self.assertEqual(len(on_lines), 1, "workflow must use one block-form on: line")
+
+        event_keys = []
+        for line in lines[on_lines[0] + 1 :]:
+            if line and not line.startswith((" ", "\t")):
+                break
+            match = re.fullmatch(r"  ([A-Za-z_][A-Za-z0-9_-]*):\s*", line)
+            if match:
+                event_keys.append(match.group(1))
+        self.assertEqual(event_keys, ["workflow_dispatch"])
 
         for prohibited in ("release", "signing", "secrets"):
             with self.subTest(prohibited=prohibited):
