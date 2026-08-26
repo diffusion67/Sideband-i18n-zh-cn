@@ -425,7 +425,10 @@ else:
     from kivymd.uix.button import MDRectangleFlatButton
     from kivymd.uix.dialog import MDDialog
     from kivymd.color_definitions import colors
-    from .i18n import localize_kv
+    if RNS.vendor.platformutils.is_android():
+        from i18n import localize_kv
+    else:
+        from .i18n import localize_kv
 
     _builder_load_string = Builder.load_string
 
