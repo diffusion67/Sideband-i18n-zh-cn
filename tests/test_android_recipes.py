@@ -1,5 +1,6 @@
 """Offline regressions for the legacy CPython Android cross-build toolchain."""
 
+import ast
 import configparser
 import importlib.util
 import os
@@ -34,6 +35,25 @@ class AndroidRecipeTests(unittest.TestCase):
         # 2.3.4 fixes unique.cpp's missing <unordered_map> and meets LXST's floor.
         self.assertEqual(numpy, ["numpy==v2.3.4"])
         self.assertEqual(spec["app"]["android.ndk"], "25b")
+
+    def test_cffi_meets_current_lxst_minimum_version(self):
+        spec = configparser.ConfigParser(interpolation=None)
+        spec.read(ROOT / "sbapp/buildozer.spec")
+        self.assertIn("cffi==2.0.0", spec["app"]["requirements"].split(","))
+
+    def test_setuptools_recipe_builds_and_installs_a_real_source_project(self):
+        path = ROOT / "recipes/setuptools/__init__.py"
+        self.assertTrue(path.is_file(), "setuptools must be installed in target site-packages")
+        module = ast.parse(path.read_text())
+        recipe = next(node for node in module.body if isinstance(node, ast.ClassDef))
+        self.assertEqual([base.id for base in recipe.bases], ["PyProjectRecipe"])
+        attrs = {node.targets[0].id: ast.literal_eval(node.value)
+                 for node in recipe.body if isinstance(node, ast.Assign)}
+        self.assertEqual(attrs["version"], "84.0.0")
+        self.assertEqual(attrs["url"].format(version=attrs["version"]),
+                         "https://files.pythonhosted.org/packages/source/s/setuptools/setuptools-84.0.0.tar.gz")
+        self.assertIn("setuptools", attrs["hostpython_prerequisites"])
+        self.assertIn("setuptools==84.0.0", CONSTRAINTS.read_text().splitlines())
 
     @unittest.skipUnless(importlib.util.find_spec("build"),
                          "Install build with recipes/android-build-constraints.txt")

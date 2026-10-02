@@ -14,7 +14,8 @@ android.numeric_version = 20251128
 
 # NumPy 2.3.4 meets LXST requirements and fixes the missing unordered_map header
 # under Android NDK libc++; p4a checks out this Git tag verbatim.
-requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy==v2.3.4,cryptography,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
+# LXST also requires CFFI >=2.0.0; retain the existing p4a recipe and patches.
+requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy==v2.3.4,cryptography,codec2,pycodec2,sh,pynacl,cffi==2.0.0,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
 
 android.gradle_dependencies =  com.android.support:support-compat:28.0.0
 #android.enable_androidx = True

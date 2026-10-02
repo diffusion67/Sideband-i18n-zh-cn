@@ -5,3 +5,6 @@
 # this constrains build tooling only, not Android runtime dependencies.
 # https://github.com/pypa/build/blob/1.4.3/CHANGELOG.rst
 build==1.4.2
+
+# Keep the host backend aligned with the local target setuptools recipe.
+setuptools==84.0.0
