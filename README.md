@@ -3,9 +3,16 @@ Sideband <img align="right" src="https://img.shields.io/badge/License-CC%20BY--N
 
 [简体中文说明](README.zh-CN.md)
 
-*This repository is [a public mirror](./MIRROR.md). All development is happening elsewhere. While new releases are posted here, the latest source code is only available over Reticulum itself.*
+This is an unofficial Simplified Chinese localization fork of Sideband, maintained in `diffusion67/Sideband-i18n-zh-cn`. It preserves the upstream copyright and license. Fork builds are published only on [this repository’s Releases](https://github.com/diffusion67/Sideband-i18n-zh-cn/releases); upstream download links below refer to the original, unlocalized releases. The public source currently identifies itself as **1.9.2**, independently of newer upstream binary releases.
+
+> [!NOTE]
+> This fork tracks the publicly available GitHub source. Upstream states that current development takes place over Reticulum, while packages and compiled releases continue to be distributed through its published channels. See the [upstream repository notice](https://github.com/markqvist/Sideband#readme) for the maintainer's current development and distribution information.
+
+---
 
 To understand the foundational philosophy and goals of this system, read the [Zen of Reticulum](Zen%20of%20Reticulum.md).
+
+For an Android-specific quickstart guide for new users, see the community-provided [Sideband Quick-start by RNS Moscow](https://docs.rns.moscow/sideband-quickstart/).
 
 Sideband is an extensible LXMF messaging and LXST telephony client, situational awareness tracker and remote control and monitoring system for Android, Linux, macOS and Windows. It allows you to communicate with other people or LXMF-compatible systems over Reticulum networks using LoRa, Packet Radio, WiFi, I2P, Encrypted QR Paper Messages, or anything else Reticulum supports.
 

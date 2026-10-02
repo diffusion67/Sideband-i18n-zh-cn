@@ -1,6 +1,11 @@
 import time
 import RNS
 
+if RNS.vendor.platformutils.get_platform() == "android":
+    from i18n import translate as tr
+else:
+    from sbapp.i18n import translate as tr
+
 from kivy.metrics import dp,sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import StringProperty, BooleanProperty
@@ -108,7 +113,7 @@ class Announces():
                         a_q    = link_stats["q"]
                         if a_rssi != None and a_snr != None and a_q != None:
                             link_extras_str  = f" ([b]RSSI[/b] {a_rssi} [b]SNR[/b] {a_snr})"
-                            link_extras_full = f"\n[b]Link Quality[/b] {a_q}%[/b]\n[b]RSSI[/b] {a_rssi}\n[b]SNR[/b] {a_snr}"
+                            link_extras_full = tr('\n[b]Link Quality[/b] {a_q}%[/b]\n[b]RSSI[/b] {a_rssi}\n[b]SNR[/b] {a_snr}', a_q=a_q, a_rssi=a_rssi, a_snr=a_snr)
 
             sig_icon = multilingual_markup(sig_icon_for_q(a_q).encode("utf-8")).decode("utf-8")
 
@@ -122,21 +127,21 @@ class Announces():
                     name = multilingual_markup(escape_markup(str(name)).encode("utf-8")).decode("utf-8")
                     cost = str(cost)
                     def x(sender):
-                        yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))    
+                        yes_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
                         if dtype == "lxmf.delivery":
-                            ad_text = "[size=22dp]LXMF Peer[/size]\n\n[b]Received[/b] "+ts+"\n[b]Address[/b] "+RNS.prettyhexrep(dest)+"\n[b]Name[/b] "+name+"\n[b]Stamp Cost[/b] "+cost+link_extras
+                            ad_text = tr("[size=22dp]LXMF Peer[/size]\n\n[b]Received[/b] ")+ts+tr("\n[b]Address[/b] ")+RNS.prettyhexrep(dest)+tr("\n[b]Name[/b] ")+name+tr("\n[b]Stamp Cost[/b] ")+cost+link_extras
 
                         if dtype == "lxmf.propagation":
                             if a_name:
                                 disp_name = multilingual_markup(escape_markup(str(a_name)).encode("utf-8")).decode("utf-8")
-                                disp_name = f"\n[b]Name[/b] {disp_name}"
+                                disp_name = tr('\n[b]Name[/b] {disp_name}', disp_name=disp_name)
                             else: disp_name = ""
                             if a_cost:
                                 disp_cost = str(a_cost)
-                                disp_cost = f"\n[b]Stamp Cost[/b] {disp_cost}"
+                                disp_cost = tr('\n[b]Stamp Cost[/b] {disp_cost}', disp_cost=disp_cost)
                             else: disp_cost = ""
 
-                            ad_text = f"[size=22dp]LXMF Propagation Node[/size]\n\n[b]Received[/b] {ts}\n[b]Address[/b] {RNS.prettyhexrep(dest)+link_extras}{disp_name}{disp_cost}"
+                            ad_text = tr('[size=22dp]LXMF Propagation Node[/size]\n\n[b]Received[/b] {ts}\n[b]Address[/b] {value2}{disp_name}{disp_cost}', ts=ts, value2=RNS.prettyhexrep(dest) + link_extras, disp_name=disp_name, disp_cost=disp_cost)
 
                         dialog = MDDialog(
                             text=ad_text,
@@ -160,12 +165,12 @@ class Announces():
 
                 elif dest_type == "lxmf.propagation":
                     if a_name: disp_name = multilingual_markup(escape_markup(str(a_name)).encode("utf-8")).decode("utf-8")
-                    else: disp_name = f"Propagation Node"
+                    else: disp_name = tr('Propagation Node')
                     disp_name = f"{disp_name} {RNS.prettyhexrep(context_dest)}"
                     iconl = IconLeftWidget(icon="upload-network")
 
                 else:
-                    disp_name = "Unknown Announce"
+                    disp_name = tr("Unknown Announce")
                     iconl = IconLeftWidget(icon="progress-question")
 
                 item = TwoLineAvatarIconListItem(text=time_string, secondary_text=disp_name, on_release=gen_info(time_string_plain, context_dest, a_name, a_cost, dest_type, link_extras_full))
@@ -175,10 +180,10 @@ class Announces():
 
                 def gen_del(dest, item):
                     def x():
-                        yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
-                        no_button = MDRectangleFlatButton(text="No",font_size=dp(18))
+                        yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
+                        no_button = MDRectangleFlatButton(text=tr("No"),font_size=dp(18))
                         dialog = MDDialog(
-                            title="Delete announce?",
+                            title=tr("Delete announce?"),
                             buttons=[ yes_button, no_button ],
                             padding=[0,0,dp(32),0]
                             # elevation=0,
@@ -222,18 +227,18 @@ class Announces():
                     dm_items = [
                         {
                             "viewclass": "OneLineListItem",
-                            "text": "Converse",
+                            "text": tr("Converse"),
                             "height": dp(40),
                             "on_release": gen_conv(context_dest, item)
                         },
                         {
                             "viewclass": "OneLineListItem",
-                            "text": "Copy address",
+                            "text": tr("Copy address"),
                             "height": dp(40),
                             "on_release": gen_copy_addr(context_dest, item)
                         },
                         {
-                            "text": "Delete Announce",
+                            "text": tr("Delete Announce"),
                             "viewclass": "OneLineListItem",
                             "height": dp(40),
                             "on_release": gen_del(context_dest, item)
@@ -244,18 +249,18 @@ class Announces():
                     dm_items = [
                         {
                             "viewclass": "OneLineListItem",
-                            "text": "Use this Propagation Node",
+                            "text": tr("Use this Propagation Node"),
                             "height": dp(40),
                             "on_release": gen_set_node(context_dest, item)
                         },
                         {
                             "viewclass": "OneLineListItem",
-                            "text": "Copy address",
+                            "text": tr("Copy address"),
                             "height": dp(40),
                             "on_release": gen_copy_addr(context_dest, item)
                         },
                         {
-                            "text": "Delete Announce",
+                            "text": tr("Delete Announce"),
                             "viewclass": "OneLineListItem",
                             "height": dp(40),
                             "on_release": gen_del(context_dest, item)

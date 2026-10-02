@@ -8,7 +8,8 @@ apk:
 	mkdir -p ./dist
 
 fetchapk:
-	cp ./sbapp/bin/sideband-*-release.apk ./dist/
+	mkdir -p ./dist
+	cp ./sbapp/bin/sideband-*-release*.apk ./dist/
 
 install:
 	make -C sbapp install

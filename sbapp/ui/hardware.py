@@ -1,6 +1,11 @@
 import time
 import RNS
 
+if RNS.vendor.platformutils.get_platform() == "android":
+    from i18n import translate as tr
+else:
+    from sbapp.i18n import translate as tr
+
 import base64
 import threading
 import RNS.vendor.umsgpack as msgpack
@@ -57,28 +62,28 @@ class Hardware():
 
             if RNS.vendor.platformutils.get_platform() == "android":
                 if not self.app.sideband.getpersistent("service.is_controlling_connectivity"):
-                    info =  "Sideband is connected via a shared Reticulum instance running on this system.\n\n"
-                    info += "To configure hardware parameters, edit the relevant configuration file for the instance."
+                    info =  tr("Sideband is connected via a shared Reticulum instance running on this system.\n\n")
+                    info += tr("To configure hardware parameters, edit the relevant configuration file for the instance.")
                     self.hardware_screen.ids.hardware_info.text = info
                     con_hide_settings()
 
                 else:
-                    info =  "When using external hardware for communicating, you may configure various parameters, such as channel settings, modulation schemes, interface speeds and access parameters. You can set up these parameters per device type, and Sideband will apply the configuration when opening a device of that type.\n\n"
-                    info += "Hardware configurations can also be exported or imported as [i]config motes[/i], which are self-contained plaintext strings that are easy to share with others. When importing a config mote, Sideband will automatically set all relevant parameters as specified within it.\n\n"
-                    info += "For changes to hardware parameters to take effect, you must shut down and restart Sideband.\n"
+                    info =  tr("When using external hardware for communicating, you may configure various parameters, such as channel settings, modulation schemes, interface speeds and access parameters. You can set up these parameters per device type, and Sideband will apply the configuration when opening a device of that type.\n\n")
+                    info += tr("Hardware configurations can also be exported or imported as [i]config motes[/i], which are self-contained plaintext strings that are easy to share with others. When importing a config mote, Sideband will automatically set all relevant parameters as specified within it.\n\n")
+                    info += tr("For changes to hardware parameters to take effect, you must shut down and restart Sideband.\n")
                     self.hardware_screen.ids.hardware_info.text = info
 
             else:
                 info = ""
 
                 if self.app.sideband.reticulum.is_connected_to_shared_instance:
-                    info =  "Sideband is connected via a shared Reticulum instance running on this system.\n\n"
-                    info += "To configure hardware parameters, edit the configuration file located at:\n\n"
+                    info =  tr("Sideband is connected via a shared Reticulum instance running on this system.\n\n")
+                    info += tr("To configure hardware parameters, edit the configuration file located at:\n\n")
                     if not RNS.vendor.platformutils.is_windows(): info += str(RNS.Reticulum.configpath)
                     else:                                         info += str(RNS.Reticulum.configpath.replace("/", "\\"))
                 else:
-                    info =  "Sideband is currently running a standalone or master Reticulum instance on this system.\n\n"
-                    info += "To configure hardware parameters, edit the configuration file located at:\n\n"
+                    info =  tr("Sideband is currently running a standalone or master Reticulum instance on this system.\n\n")
+                    info += tr("To configure hardware parameters, edit the configuration file located at:\n\n")
                     if not RNS.vendor.platformutils.is_windows(): info += str(RNS.Reticulum.configpath)
                     else:                                         info += str(RNS.Reticulum.configpath.replace("/", "\\"))
 
@@ -160,7 +165,7 @@ class Hardware():
         scan_timeout = time.time()+16
         def job(dt):
             self.hardware_rnode_screen.ids.hardware_rnode_bt_scan_button.disabled = True
-            self.hardware_rnode_screen.ids.hardware_rnode_bt_scan_button.text = "Scanning..."
+            self.hardware_rnode_screen.ids.hardware_rnode_bt_scan_button.text = tr("Scanning...")
         Clock.schedule_once(job, 0.2)
         while time.time() < scan_timeout:
             RNS.log("Scanning...", RNS.LOG_DEBUG)
@@ -172,7 +177,7 @@ class Hardware():
                     def add_factory(add_device):
                         def add_job(dt):
                             pair_addr = add_device["address"]
-                            btn_text = "Pair "+add_device["name"]
+                            btn_text = tr("Pair ")+add_device["name"]
                             def run_pair(sender):
                                 pair_result = self.hardware_rnode_pair_device_action(pair_addr)
                                 if pair_result != "already_paired":
@@ -190,11 +195,11 @@ class Hardware():
 
         def job(dt):
             self.hardware_rnode_screen.ids.hardware_rnode_bt_scan_button.disabled = False
-            self.hardware_rnode_screen.ids.hardware_rnode_bt_scan_button.text = "Pair New Device"
+            self.hardware_rnode_screen.ids.hardware_rnode_bt_scan_button.text = tr("Pair New Device")
         Clock.schedule_once(job, 0.2)
 
         if len(added_devices) == 0:
-            def job(dt): toast("No unpaired RNodes discovered")
+            def job(dt): toast(tr("No unpaired RNodes discovered"))
             Clock.schedule_once(job, 0.2)
 
     def hardware_rnode_pair_check_job(self, pair_addr, device_name):
@@ -206,14 +211,14 @@ class Hardware():
             if pair_addr in self.app.bt_bonded_devices:
                 pairing_confirmed = True
                 RNS.log(f"Pairing with {device_name} ({pair_addr}) successful", RNS.LOG_NOTICE)
-                def job(dt=None): toast(f"Paired with {device_name}")
+                def job(dt=None): toast(tr('Paired with {device_name}', device_name=device_name))
                 Clock.schedule_once(job, 0.2)
 
     def hardware_rnode_pair_device_action(self, pair_addr):
         RNS.log(f"Pair action for {pair_addr}", RNS.LOG_DEBUG)
         self.app.stop_bluetooth_scan()
         if pair_addr in self.app.bt_bonded_devices:
-            def job(dt): toast("Selected device already paired")
+            def job(dt): toast(tr("Selected device already paired"))
             Clock.schedule_once(job, 0.1)
             return "already_paired"
 
@@ -466,10 +471,10 @@ class Hardware():
         try:
             mote = Clipboard.paste()
         except Exception as e:
-            yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+            yes_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
             dialog = MDDialog(
-                title="Import Failed",
-                text="Could not read data from your clipboard, please check your system permissions.",
+                title=tr("Import Failed"),
+                text=tr("Could not read data from your clipboard, please check your system permissions."),
                 buttons=[ yes_button ],
                 # elevation=0,
             )
@@ -512,10 +517,10 @@ class Hardware():
 
             if self.hardware_rnode_validate():
                 self.hardware_rnode_save()
-                yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                yes_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
                 dialog = MDDialog(
-                    title="Configuration Imported",
-                    text="The config mote was imported and saved as your active configuration.",
+                    title=tr("Configuration Imported"),
+                    text=tr("The config mote was imported and saved as your active configuration."),
                     buttons=[ yes_button ],
                     # elevation=0,
                 )
@@ -524,13 +529,13 @@ class Hardware():
                 yes_button.bind(on_release=dl_yes)
                 dialog.open()
             else:
-                raise ValueError("Invalid mote")
+                raise ValueError(tr("Invalid mote"))
 
         except Exception as e:
-            yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+            yes_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
             dialog = MDDialog(
-                title="Import Failed",
-                text="The read data did not contain a valid config mote. If any data was decoded, you may try to correct it by editing the relevant fields. The reported error was:\n\n"+str(e),
+                title=tr("Import Failed"),
+                text=tr("The read data did not contain a valid config mote. If any data was decoded, you may try to correct it by editing the relevant fields. The reported error was:\n\n")+str(e),
                 buttons=[ yes_button ],
                 # elevation=0,
             )
@@ -558,10 +563,10 @@ class Hardware():
 
         if mote != None:
             Clipboard.copy(mote)
-            yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+            yes_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
             dialog = MDDialog(
-                title="Configuration Exported",
-                text="The config mote was created and copied to your clipboard.",
+                title=tr("Configuration Exported"),
+                text=tr("The config mote was created and copied to your clipboard."),
                 buttons=[ yes_button ],
                 # elevation=0,
             )
@@ -570,10 +575,10 @@ class Hardware():
             yes_button.bind(on_release=dl_yes)
             dialog.open()
         else:
-            yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+            yes_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
             dialog = MDDialog(
-                title="Export Failed",
-                text="The config mote could not be created, please check your settings.",
+                title=tr("Export Failed"),
+                text=tr("The config mote could not be created, please check your settings."),
                 buttons=[ yes_button ],
                 # elevation=0,
             )

@@ -1,0 +1,10 @@
+# The pinned python-for-android CPython 3.11 cross-build exposes host native
+# extensions through PYTHONPATH after relocating hostpython to the target tree.
+# build 1.4.3+ clears PYTHONPATH in isolated backend subprocesses, which hides
+# math and other native stdlib modules. Keep the last compatible build frontend;
+# this constrains build tooling only, not Android runtime dependencies.
+# https://github.com/pypa/build/blob/1.4.3/CHANGELOG.rst
+build==1.4.2
+
+# Keep the host backend aligned with the local target setuptools recipe.
+setuptools==84.0.0

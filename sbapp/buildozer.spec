@@ -12,13 +12,19 @@ version.regex = __version__ = ['"](.*)['"]
 version.filename = %(source.dir)s/main.py
 android.numeric_version = 20251128
 
-requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy,cryptography,codec2,pycodec2,sh,pynacl,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
+# NumPy 2.3.4 meets LXST requirements and fixes the missing unordered_map header
+# under Android NDK libc++; p4a checks out this Git tag verbatim.
+# LXST also requires CFFI >=2.0.0; retain the existing p4a recipe and patches.
+requirements = kivy==2.3.0,libbz2,sqlite3,pillow==10.2.0,qrcode==7.3.1,usb4a,usbserial4a,able_recipe,libwebp,libogg,libopus,opusfile,numpy==v2.3.4,cryptography,codec2,pycodec2,sh,pynacl,cffi==2.0.0,typing-extensions,mistune>=3.0.2,beautifulsoup4,lxst
 
 android.gradle_dependencies =  com.android.support:support-compat:28.0.0
 #android.enable_androidx = True
 #android.add_aars = patches/support-compat-28.0.0.aar
 
 p4a.local_recipes = ../recipes/
+# Keep the toolchain compatible with the local CPython 3.11 recipes.
+# Newer p4a uses Python 3.14 installed-prefix APIs absent from these recipes.
+p4a.commit = 7593f9d62439b5864f7e6204fe382c424e11ad57
 
 icon.filename = %(source.dir)s/assets/icon.png
 presplash.filename = %(source.dir)s/assets/presplash_small.png
@@ -44,6 +50,8 @@ android.archs = arm64-v8a
 services = sidebandservice:services/sidebandservice.py:foreground
 android.whitelist = lib-dynload/termios.so
 android.manifest.intent_filters = patches/intent-filter.xml
+# prebake runs before Makefile injection, so XML resources must exist on its first build.
+android.res_xml = patches/device_filter.xml,patches/file_paths.xml
 
 # android.add_libs_armeabi_v7a = ../libs/armeabi/*.so*
 # android.add_libs_arm64_v8a = ../libs/arm64/*.so*

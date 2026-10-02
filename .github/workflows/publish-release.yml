@@ -1,0 +1,212 @@
+name: Publish Verified Release
+
+on:
+  workflow_run:
+    workflows: [Build Windows ZIP, Build Android APK, Build Desktop Installers]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_commit.message, 'Release Sideband 1.9.2 Chinese test build (2026-10-02)') &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      # This privileged job never checks out or executes application/artifact code.
+      - name: Publish only matching successful main-build artifacts
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { createHash } = require('crypto');
+            const { execFileSync } = require('child_process');
+            const releaseTitle = 'Release Sideband 1.9.2 Chinese test build (2026-10-02)';
+            if (context.payload.workflow_run.head_commit.message.split('\n')[0] !== releaseTitle) {
+              core.info('This is not the explicitly approved release merge.');
+              return;
+            }
+            const repo = context.repo;
+            const sha = context.payload.workflow_run.head_sha;
+            const main = await github.rest.git.getRef({...repo, ref: 'heads/main'});
+            if (main.data.object.sha !== sha) {
+              core.info('A newer main commit exists; do not publish a stale build.');
+              return;
+            }
+            const workflows = ['build-windows-zip.yml', 'build-android-apk.yml', 'build-desktop.yml'];
+            const runs = [];
+            for (const workflow_id of workflows) {
+              const response = await github.rest.actions.listWorkflowRuns({
+                ...repo, workflow_id, branch: 'main', event: 'push', head_sha: sha, per_page: 10
+              });
+              const run = response.data.workflow_runs[0];
+              if (!run || run.head_sha !== sha || run.status !== 'completed' || run.conclusion !== 'success') {
+                core.info(`Waiting for a successful ${workflow_id} build of ${sha}`);
+                return;
+              }
+              if (run.head_repository.full_name !== `${repo.owner}/${repo.repo}`) {
+                throw new Error('Build repository mismatch');
+              }
+              runs.push(run);
+            }
+            const source = await github.rest.repos.getContent({...repo, path: 'sbapp/main.py', ref: sha});
+            const sourceText = Buffer.from(source.data.content, 'base64').toString('utf8');
+            const version = sourceText.match(/^__version__ = ["']([0-9]+\.[0-9]+\.[0-9]+)["']$/m)?.[1];
+            if (!version) throw new Error('Missing validated public-source version');
+            const tag = `v${version}-zh-cn.${sha.slice(0, 8)}`;
+            const stage = path.join(process.env.RUNNER_TEMP, 'sideband-release');
+            fs.mkdirSync(stage, {recursive: true});
+            const assets = new Map();
+            const addFile = (filename, data) => {
+              if (assets.has(filename)) throw new Error(`Duplicate asset name: ${filename}`);
+              if (!data.length) throw new Error(`Empty asset: ${filename}`);
+              assets.set(filename, data);
+            };
+            for (const run of runs) {
+              const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                ...repo, run_id: run.id, per_page: 100
+              });
+              const selected = artifacts.filter(a => a.name.startsWith('sideband-') && !a.expired);
+              if (!selected.length) throw new Error(`No verified artifacts for run ${run.id}`);
+              for (const artifact of selected) {
+                const response = await github.rest.actions.downloadArtifact({
+                  ...repo, artifact_id: artifact.id, archive_format: 'zip'
+                });
+                const archive = path.join(stage, `${artifact.id}.zip`);
+                const directory = path.join(stage, String(artifact.id));
+                fs.writeFileSync(archive, Buffer.from(response.data));
+                execFileSync('unzip', ['-q', archive, '-d', directory]);
+                const walk = dir => {
+                  for (const entry of fs.readdirSync(dir, {withFileTypes: true})) {
+                    const file = path.join(dir, entry.name);
+                    if (entry.isSymbolicLink()) throw new Error('Unexpected artifact symlink');
+                    if (entry.isDirectory()) walk(file);
+                    else if (entry.isFile() && (/\.(zip|apk|AppImage|dmg)$/.test(entry.name) || entry.name === 'APK-SIGNATURE.txt' || /^PLATFORM-VALIDATION-macos-(arm64|x86_64)\.txt$/.test(entry.name))) {
+                      addFile(entry.name, fs.readFileSync(file));
+                    }
+                  }
+                };
+                walk(directory);
+              }
+            }
+            for (const extension of ['.zip', '.apk', '.AppImage', '.dmg']) {
+              if (![...assets.keys()].some(name => name.endsWith(extension))) {
+                throw new Error(`Missing validated platform artifact: ${extension}`);
+              }
+            }
+            for (const arch of ['arm64', 'x86_64']) {
+              if (!assets.has(`PLATFORM-VALIDATION-macos-${arch}.txt`) ||
+                  !assets.has(`Sideband-zh-CN-macos-${arch}.dmg`)) {
+                throw new Error(`Missing macOS installer or honest validation report: ${arch}`);
+              }
+            }
+            const signature = assets.get('APK-SIGNATURE.txt')?.toString('utf8') || '';
+            const unsigned = /unsigned|not installable/i.test(signature);
+            if (!signature) throw new Error('Missing Android signature report');
+            if (unsigned) throw new Error('The approved release requires an installable test-signed Android APK');
+            const hashes = [...assets].sort(([a], [b]) => a.localeCompare(b)).map(([name, data]) =>
+              `${createHash('sha256').update(data).digest('hex')}  ${name}`).join('\n') + '\n';
+            addFile('SHA256SUMS', Buffer.from(hashes));
+            addFile('BUILD-PROVENANCE.json', Buffer.from(JSON.stringify({
+              source_commit: sha, public_source_version: version, release_tag: tag,
+              android_unsigned: unsigned,
+              runs: runs.map(run => ({id: run.id, name: run.name, url: run.html_url, sha: run.head_sha}))
+            }, null, 2) + '\n'));
+            const body = [
+              `简体中文派生版，基于公开源码 ${version}，不是上游 2.2.0 二进制。`,
+              `源码提交：${sha}`,
+              '',
+              '- Windows x86_64：便携 ZIP，完整解压后运行 Sideband.exe；未进行 Authenticode 签名。',
+              '- Linux：文件名标明架构的 AppImage；兼容性受构建系统 libc 和本机音频/图形驱动限制。',
+              '- macOS（实验性）：架构对应的 DMG，未进行 Developer ID 签名或公证。已验证包完整性、架构、资源和后台启动；受托管构建机加速 OpenGL 限制，图形界面可能未完成运行验证。每个架构的确切状态见 PLATFORM-VALIDATION 报告；音频通话未验证。',
+              unsigned
+                ? '- Android arm64-v8a：此 APK 未签名，不能直接安装；需使用你授权的签名密钥签名。'
+                : '- Android arm64-v8a：签名信息见 APK-SIGNATURE.txt；请核对证书和测试签名说明，不能覆盖使用其他证书签名的版本。',
+              '',
+              'Android 测试签名密钥已在构建结束后丢弃，不用于生产签名。后续版本若使用不同密钥，可能必须先卸载本版；请先备份身份与消息。不能直接覆盖不同证书签名的上游安装。',
+              '公开签名证书信息：',
+              signature,
+              '',
+              '各平台具体检查见对应 CI 任务；Windows/Linux 包含归档、资源或真实 GUI 启动检查；macOS 验证范围以各架构的平台报告为准，不能将被阻塞的 GUI 检查视为通过；Android 为归档与签名检查。真实 Android 设备安装、通话、网络互联及所有桌面环境未逐一验证。',
+              '下载后请按 SHA256SUMS 核验。构建来源见 BUILD-PROVENANCE.json。',
+              '',
+              ...runs.map(run => `- ${run.name}: ${run.html_url}`)
+            ].join('\n');
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({...repo, tag})).data;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              // Create immutable tag pointing to the exact successful-build commit.
+              try {
+                await github.rest.git.createRef({...repo, ref: `refs/tags/${tag}`, sha});
+              } catch (error) {
+                if (error.status !== 422) throw error;
+                const existing = await github.rest.git.getRef({...repo, ref: `tags/${tag}`});
+                if (existing.data.object.sha !== sha) throw new Error('Release tag points to a different commit');
+              }
+              release = (await github.rest.repos.createRelease({
+                ...repo, tag_name: tag, target_commitish: sha,
+                name: `Sideband ${version} 简体中文`, body, draft: true, prerelease: true
+              })).data;
+            }
+            const tagRef = await github.rest.git.getRef({...repo, ref: `tags/${tag}`});
+            if (tagRef.data.object.sha !== sha) throw new Error('Release tag points to a different commit');
+            const existing = await github.paginate(github.rest.repos.listReleaseAssets, {
+              ...repo, release_id: release.id, per_page: 100
+            });
+            for (const [name, data] of assets) {
+              let old = existing.find(asset => asset.name === name);
+              // GitHub may leave an empty starter after an interrupted upload.
+              // Only discard this job's empty draft placeholder, never real assets.
+              if (old && release.draft && old.state === 'starter' && old.size === 0) {
+                await github.rest.repos.deleteReleaseAsset({...repo, asset_id: old.id});
+                old = undefined;
+              }
+              if (old) {
+                const digest = `sha256:${createHash('sha256').update(data).digest('hex')}`;
+                if (old.size !== data.length || old.digest !== digest) throw new Error(`Existing asset differs: ${name}`);
+              } else {
+                if (!release.draft) throw new Error('Refusing to change an already published release');
+                await github.rest.repos.uploadReleaseAsset({
+                  ...repo, release_id: release.id, name, data,
+                  headers: {'content-type': 'application/octet-stream', 'content-length': data.length}
+                });
+              }
+            }
+            const uploaded = await github.paginate(github.rest.repos.listReleaseAssets, {
+              ...repo, release_id: release.id, per_page: 100
+            });
+            if (uploaded.length !== assets.size) throw new Error('Unexpected release asset count');
+            for (const [name, data] of assets) {
+              const asset = uploaded.find(asset => asset.name === name);
+              const digest = `sha256:${createHash('sha256').update(data).digest('hex')}`;
+              if (!asset || asset.state !== 'uploaded' || asset.size !== data.length || asset.digest !== digest) {
+                throw new Error(`Release asset verification failed: ${name}`);
+              }
+            }
+            const latestMain = await github.rest.git.getRef({...repo, ref: 'heads/main'});
+            if (latestMain.data.object.sha !== sha) {
+              core.info('Main changed during upload; leaving the release as a draft.');
+              return;
+            }
+            if (release.draft) {
+              release = (await github.rest.repos.updateRelease({
+                ...repo, release_id: release.id, draft: false, body, prerelease: true
+              })).data;
+            }
+            core.summary.addLink('Verified Sideband release', release.html_url);
+            await core.summary.write();

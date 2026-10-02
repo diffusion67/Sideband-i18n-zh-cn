@@ -2,6 +2,13 @@ name: Build Windows ZIP
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -36,7 +43,7 @@ jobs:
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pyinstaller kivy kivy-deps.sdl2 kivy-deps.glew .
+          python -m pip install pyinstaller kivy kivy-deps.sdl2 kivy-deps.glew kivy-deps.angle .
 
       - name: Prepare Windows build sources
         shell: pwsh
@@ -54,11 +61,87 @@ jobs:
           KIVY_GL_BACKEND: mock
         run: winbuild.bat
 
+      - name: Verify Windows ZIP
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          packages = list(Path("dist").glob("*.zip"))
+          assert packages, "No Windows ZIP was produced"
+          for package in packages:
+              with zipfile.ZipFile(package) as archive:
+                  assert archive.testzip() is None, f"Corrupt ZIP: {package}"
+                  assert any(n.endswith("/Sideband.exe") for n in archive.namelist()), f"Missing executable: {package}"
+          PY
+
+      - name: Smoke test Windows executable
+        shell: pwsh
+        env:
+          # Hosted runners expose only legacy OpenGL; exercise bundled ANGLE.
+          KIVY_GL_BACKEND: angle_sdl2
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Get-ChildItem -Path 'dist/*.zip' | Select-Object -First 1
+          $isolated = Join-Path $env:RUNNER_TEMP 'sideband-windows-smoke'
+          New-Item -ItemType Directory -Force -Path $isolated | Out-Null
+          Expand-Archive -LiteralPath $archive.FullName -DestinationPath $isolated
+          $app = Get-ChildItem -Path $isolated -Filter Sideband.exe -Recurse | Select-Object -First 1
+          if (-not $app) { throw 'Missing extracted executable' }
+          $config = Join-Path $isolated 'profile'
+          $env:KIVY_HOME = Join-Path $isolated 'kivy'
+          $env:PYTHONPATH = ''
+          $diagnostics = Join-Path $env:RUNNER_TEMP 'sideband-windows-diagnostics'
+          New-Item -ItemType Directory -Force -Path $diagnostics | Out-Null
+          $process = Start-Process -FilePath $app.FullName -WorkingDirectory $isolated -ArgumentList @('--config', $config, '--verbose') -PassThru
+          try {
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 90; $attempt++) {
+              Start-Sleep -Seconds 1
+              $process.Refresh()
+              if ($process.HasExited) { throw "Sideband exited during startup: $($process.ExitCode)" }
+              $logs = Get-ChildItem -Path "$env:KIVY_HOME/logs/*.txt" -ErrorAction SilentlyContinue
+              $started = $logs | Select-String -Pattern 'Start application main loop' -Quiet
+              $saved = Test-Path (Join-Path $config 'app_storage/sideband_config')
+              if ($started -and $saved -and $process.MainWindowTitle -match '^Sideband') {
+                $ready = $true
+                break
+              }
+            }
+            if (-not $ready) { throw 'Sideband did not reach its GUI main loop and save configuration' }
+          } finally {
+            @{
+              process_id = $process.Id
+              exited = $process.HasExited
+              window_title = $process.MainWindowTitle
+              config_saved = (Test-Path (Join-Path $config 'app_storage/sideband_config'))
+              kivy_home = $env:KIVY_HOME
+            } | ConvertTo-Json | Set-Content (Join-Path $diagnostics 'readiness.json')
+            Get-ChildItem -Path "$env:KIVY_HOME/logs/*.txt" -ErrorAction SilentlyContinue | Copy-Item -Destination $diagnostics
+            # Capture only this isolated app's dialog text, not the runner desktop.
+            try {
+              Add-Type -AssemblyName UIAutomationClient
+              $filter = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
+              $elements = [System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants, $filter)
+              $elements | ForEach-Object { $_.Current.Name } | Set-Content (Join-Path $diagnostics 'window-text.txt')
+            } catch { $_ | Out-String | Set-Content (Join-Path $diagnostics 'ui-automation-error.txt') }
+            Get-ChildItem -Path $diagnostics -File | Get-Content
+            if (-not $process.HasExited) { taskkill /PID $process.Id /T /F }
+          }
+
+      - name: Upload startup diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sideband-windows-diagnostics-${{ github.run_number }}
+          path: ${{ runner.temp }}/sideband-windows-diagnostics
+          if-no-files-found: warn
+          retention-days: 3
+
       - name: Upload Windows ZIP
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sideband-windows-zip-${{ github.run_number }}
-          path: Sideband_*/**
-          if-no-files-found: warn
+          path: dist/*.zip
+          if-no-files-found: error
           retention-days: 14

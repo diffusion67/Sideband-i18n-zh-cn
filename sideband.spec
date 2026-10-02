@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-from kivy_deps import sdl2, glew
+from kivy_deps import sdl2, glew, angle
 
 a = Analysis(
     ['main.py'],
@@ -61,7 +61,7 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    *[Tree(p) for p in (sdl2.dep_bins + glew.dep_bins)],
+    *[Tree(p) for p in (sdl2.dep_bins + glew.dep_bins + angle.dep_bins)],
     strip=False,
     upx=True,
     upx_exclude=[],

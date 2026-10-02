@@ -1,6 +1,8 @@
 # Sideband（简体中文说明）
 
-> 本文对应仓库中的英文 README。命令、文件名、协议名和校验值保持原样，以免影响安装与验证。
+> 这是 Sideband 的非官方简体中文派生版，保留上游 Mark Qvist / unsigned.io 的版权和许可证。中文构建发布在[本仓库 Releases](https://github.com/diffusion67/Sideband-i18n-zh-cn/releases)。上游安装包未包含本仓库的中文修改。
+>
+> 本次同步的 GitHub 公开源码版本仍为 **1.9.2**。上游更新的二进制版本与公开源码版本并不同步，不能将此派生版标为 2.2.0。
 
 *本仓库是公开镜像；上游开发在 Reticulum 网络中进行。GitHub 会发布新版本，但最新源码仅可通过 Reticulum 获取。*
 
@@ -24,89 +26,45 @@ Sideband 兼容其他 LXMF 客户端，例如 [MeshChatX](https://git.quad4.io/R
 
 ## 安装
 
-### Android
+### 已提供的构建任务
 
-从[最新发行页](https://github.com/markqvist/Sideband/releases/latest)下载 APK。安装后，可在应用的“软件源”页面直接获取更新。
+仓库保留并修复了原有的 Android 和 Windows GitHub Actions 任务，并沿用现有 cx_Freeze 配置补充 Linux/macOS 原生打包。可手动运行，也会在向 `main` 提交 PR 或推送时验证。安装前请核对 Releases 中的版本、架构、签名状态和 SHA-256 校验值。
 
-首次安装前应验证 APK 签名证书：
+- **Windows x86_64**：便携 ZIP，解压完整文件夹后运行 `Sideband.exe`，不要只移动 EXE 文件。未进行 Authenticode 签名。
+- **Android arm64-v8a**：最低 Android 7 / API 24。未提供签名材料时，任务生成 `release-unsigned.apk`，仅供进一步签名，**不能直接安装**。本次明确批准的测试发布会生成临时测试密钥，将输出标为 `test-signed.apk`；密钥不会存储或上传，证书指纹记录在 `APK-SIGNATURE.txt`。后续版本若更换证书，可能需要先卸载本版；请先备份身份和消息。普通 PR 与后续推送不自动生成密钥。证书不同的 APK 不能直接覆盖上游版或其他签名的安装。
+- **Linux x86_64**：使用 `sbapp/freeze.py` 构建 AppImage，兼容性受构建系统 libc 与本机图形、音频驱动限制。下载后赋予执行权限再运行；没有 FUSE 的系统可使用 `--appimage-extract` 解包后运行 `squashfs-root/AppRun`。
+- **macOS Apple Silicon / Intel**：分别构建架构对应的 DMG，将其中的 Sideband.app 拖到“应用程序”。未进行 Developer ID 签名或公证；不要将此状态误认为已通过 Apple 验证。macOS 包为实验性构建：托管构建机可能缺少加速 OpenGL，因此包完整性、架构、资源和后台运行检查不等于 GUI／音频验证。请阅读每个架构的 `PLATFORM-VALIDATION` 报告。
+- **Raspberry Pi / 其他架构**：仅以 Releases 实际提供并验证的架构为准，不要使用 x86_64 安装包。源码或 Python wheel 安装需要各平台依赖，wheel 不是原生独立安装包。
 
-```text
-SHA-256 digest: 1c65f01f586a2b73ac4eb8bf48730b3899d046447185fd9d005685a4af20cdea
-SHA-1 digest: 4ab9269c320c72f4e4057ec7ea5acade320c2a48
-MD5 digest: 09afff8c505089a544ad2bf371c29422
-```
+发布任务只针对本次明确命名的测试发布合并，汇集同一 `main` 提交的成功构建，生成 SHA-256 校验清单和构建来源记录后发布。实际可用平台、测试范围和签名状态以对应 Release 为准。
 
-若下载源不是官方仓库，或证书哈希不匹配，请勿安装。Android 版本不依赖 Google 或其他供应商的组件；它使用原生 Android OS API，兼容 GrapheneOS、去 Google 化设备及其他自定义 ROM。
+本派生版不能使用上游私有签名密钥；上游 README 中的 APK 证书指纹只适用于上游原版，不适用于本仓库构建。
 
-### Linux
+### 从本仓库源码安装
 
-大多数发行版可直接从[最新发行页](https://github.com/markqvist/Sideband/releases/latest)下载并运行 AppImage。语音、音频消息和剪贴板功能可能还需要 `opusfile` 及 `xclip`、`xsel` 或 `wl-clipboard`。
-
-也可以通过 pip 安装：
+请在独立 Python 虚拟环境中安装本仓库，而不是使用 `pip install sbapp`（该命令会安装上游包）。例如，已有合适 Python 和系统依赖时：
 
 ```bash
-# Debian 13+/Ubuntu 24.04+ 及衍生版所需依赖
-sudo apt install python3-pip python3-pyaudio libopusfile0 codec2 xclip xsel
-
-# 安装 Sideband
-pip install sbapp --break-system-packages
+python -m venv .venv
+# Linux/macOS
+. .venv/bin/activate
+# Windows PowerShell 使用：.venv\Scripts\Activate.ps1
+python -m pip install .
 sideband
 ```
 
-无界面运行、控制台用途或使用 pipx 时：
+Linux 上语音和剪贴板功能通常需要 `libopusfile0`、`codec2`、PortAudio、`xclip`/`xsel` 或 Wayland 剪贴板工具。macOS 还需要可用的音频依赖。完整系统依赖请参考[上游英文安装说明](README.md#installation)。
+
+若尚未配置 Reticulum 连接，请编辑 `~/.reticulum/config`（Windows 为用户目录下 `.reticulum/config`），并按[接口文档](https://reticulum.network/manual/interfaces.html)添加所需接口。
+
+### 本地回归检查
 
 ```bash
-pipx install sbapp
-# 或仅安装核心包，再自行安装 rns 和 lxmf
-pip install sbapp --no-dependencies
-pip install rns lxmf
+python -m unittest discover -s tests -v
+python -m compileall -q sbapp
 ```
 
-若尚未配置 Reticulum 连接，请编辑 `~/.reticulum/config` 并按[接口文档](https://reticulum.network/manual/interfaces.html)添加所需接口。
-
-### Raspberry Pi
-
-最简单的方式是下载并运行 `aarch64` AppImage。64 位 Raspberry Pi OS 也可安装：
-
-```bash
-sudo apt install python3-pyaudio codec2 xclip xsel
-pip install sbapp --break-system-packages
-sideband
-```
-
-较旧的系统可能还需要 `python3-pip`、`python3-dev`、`libopusfile0`、`portaudio19-dev` 等依赖，具体请参考英文 README。
-
-### macOS
-
-在[最新发行页](https://github.com/markqvist/Sideband/releases/latest)下载适用于 ARM 或 Intel 的 DMG，挂载后把 `Sideband` 拖入应用程序文件夹即可。建议另行安装 RNS 命令行工具：
-
-```bash
-pip3 install rns --user
-```
-
-也可以从源包安装，以使用守护进程、调试日志和设置导入/导出：
-
-```bash
-pip3 install sbapp --user
-sideband
-```
-
-### Windows
-
-从[最新发行页](https://github.com/markqvist/Sideband/releases/latest)下载 Windows ZIP，解压后运行 `Sideband.exe`。初次运行会创建 Reticulum 配置；如需互联网连接，可在 `C:\Users\USERNAME\.reticulum\config` 中添加接口或 Reticulum Testnet 公共中继。
-
-建议额外安装 RNS 工具：
-
-```bash
-pip install rns
-```
-
-从源包安装 Sideband：
-
-```bash
-pip install sbapp
-sideband
-```
+翻译只应用于明确标记的界面模板，格式化参数在翻译后原样插入。不会翻译用户消息、联系人名称、协议字段或插件提供的内容。Kivy 标记、占位符和技术命令由回归测试检查。
 
 ## 创建插件
 

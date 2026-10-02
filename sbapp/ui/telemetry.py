@@ -1,6 +1,11 @@
 import time
 import RNS
 
+if RNS.vendor.platformutils.get_platform() == "android":
+    from i18n import translate as tr
+else:
+    from sbapp.i18n import translate as tr
+
 from typing import Union
 from kivy.metrics import dp,sp
 from kivy.lang.builder import Builder
@@ -113,17 +118,17 @@ class Telemetry():
         
         
         self.screen.ids.telemetry_scrollview.effect_cls = ScrollEffect
-        info  = "\nSideband allows you to securely share telemetry, such as location and sensor data, with people, custom programs, "
-        info += "machines or other systems over LXMF. You have complete control over what kind of telemetry to send, and who you share "
-        info += "it with.\n\nTelemetry data is never sent to, via or processed by any external services or servers, but is carried "
-        info += "exclusively within encrypted LXMF messages over Reticulum, and only to the destinations you define.\n\nWhen telemetry "
-        info += "is enabled, it is possible to embed telemetry data in normal messages on a per-peer basis. You can control this from "
-        info += "the [b]Conversations[/b] list, by selecting the [b]Edit[/b] option for the relevant peer.\n\nYou can also define a "
-        info += "[b]Telemetry Collector[/b], that Sideband can automatically send telemetry to on a periodic basis. By default, only "
-        info += "your own telemetry will be sent to the collector, but by enabling the [b]Send all known to collector[/b] option, you "
-        info += "can forward all known telemetry to the collector. This can also be used to aggregate telemetry from multiple different "
-        info += "collectors, or create chains of transmission.\n\nBy activating the [b]Enable collector[/b] option, this instance of "
-        info += "Sideband will become a Telemetry Collector, and other authorized peers will be able to query its collected data.\n"
+        info  = tr("\nSideband allows you to securely share telemetry, such as location and sensor data, with people, custom programs, ")
+        info += tr("machines or other systems over LXMF. You have complete control over what kind of telemetry to send, and who you share ")
+        info += tr("it with.\n\nTelemetry data is never sent to, via or processed by any external services or servers, but is carried ")
+        info += tr("exclusively within encrypted LXMF messages over Reticulum, and only to the destinations you define.\n\nWhen telemetry ")
+        info += tr("is enabled, it is possible to embed telemetry data in normal messages on a per-peer basis. You can control this from ")
+        info += tr("the [b]Conversations[/b] list, by selecting the [b]Edit[/b] option for the relevant peer.\n\nYou can also define a ")
+        info += tr("[b]Telemetry Collector[/b], that Sideband can automatically send telemetry to on a periodic basis. By default, only ")
+        info += tr("your own telemetry will be sent to the collector, but by enabling the [b]Send all known to collector[/b] option, you ")
+        info += tr("can forward all known telemetry to the collector. This can also be used to aggregate telemetry from multiple different ")
+        info += tr("collectors, or create chains of transmission.\n\nBy activating the [b]Enable collector[/b] option, this instance of ")
+        info += tr("Sideband will become a Telemetry Collector, and other authorized peers will be able to query its collected data.\n")
 
         if self.app.theme_cls.theme_style == "Dark":
             info = "[color=#"+self.app.dark_theme_text_color+"]"+info+"[/color]"
@@ -143,11 +148,11 @@ class Telemetry():
                 hm = (hseg/2)*60*60; mm = mseg*5*60
                 interval = d*86400+hm+mm
 
-            interval_text = RNS.prettytime(interval)
+            interval_text = RNS.prettytime(interval).replace(" and ", tr(" and "))
             if self.screen.ids.telemetry_send_to_collector.active:
-                self.screen.ids.telemetry_send_to_collector_label.text = "Auto sync to collector every "+interval_text
+                self.screen.ids.telemetry_send_to_collector_label.text = tr("Auto sync to collector every ")+interval_text
             else:
-                self.screen.ids.telemetry_send_to_collector_label.text = "Auto sync to collector"
+                self.screen.ids.telemetry_send_to_collector_label.text = tr("Auto sync to collector")
 
             if save:
                 self.app.sideband.config["telemetry_send_interval"] = interval
@@ -189,11 +194,11 @@ class Telemetry():
                 hm = (hseg/2)*60*60; mm = mseg*5*60
                 interval = d*86400+hm+mm
 
-            interval_text = RNS.prettytime(interval)
+            interval_text = RNS.prettytime(interval).replace(" and ", tr(" and "))
             if self.screen.ids.telemetry_request_from_collector.active:
-                self.screen.ids.telemetry_request_from_collector_label.text = "Auto sync from collector every "+interval_text
+                self.screen.ids.telemetry_request_from_collector_label.text = tr("Auto sync from collector every ")+interval_text
             else:
-                self.screen.ids.telemetry_request_from_collector_label.text = "Auto sync from collector"
+                self.screen.ids.telemetry_request_from_collector_label.text = tr("Auto sync from collector")
 
             if save:
                 self.app.sideband.config["telemetry_request_interval"] = interval
@@ -359,7 +364,7 @@ class Telemetry():
             self.app.root.ids.screen_manager.add_widget(self.sensors_screen)
             self.app.bind_clipboard_actions(self.sensors_screen.ids)
 
-        info3 = "\nTo include a specific type of telemetry data while sending, it must be enabled below. Please note that some sensor types are not supported on all devices. Sideband will only be able to read a specific type of sensor if your device actually includes hardware for it.\n"
+        info3 = tr("\nTo include a specific type of telemetry data while sending, it must be enabled below. Please note that some sensor types are not supported on all devices. Sideband will only be able to read a specific type of sensor if your device actually includes hardware for it.\n")
         if self.app.theme_cls.theme_style == "Dark":
             info3 = "[color=#"+self.app.dark_theme_text_color+"]"+info3+"[/color]"            
         self.sensors_screen.ids.telemetry_info3.text = info3
