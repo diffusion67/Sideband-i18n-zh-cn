@@ -51,6 +51,20 @@ class BuildWorkflowTests(unittest.TestCase):
                 self.assertIn("if-no-files-found: error", text)
                 self.assertNotIn("if: always()", text)
 
+    def test_test_signing_is_limited_to_approved_release_merge(self):
+        text = (WORKFLOWS / "build-android-apk.yml").read_text()
+        self.assertIn("Release Sideband 1.9.2 Chinese test build (2026-10-02)", text)
+        self.assertIn("github.event_name == 'push'", text)
+        self.assertIn("github.ref == 'refs/heads/main'", text)
+        self.assertIn('trap cleanup EXIT', text)
+        self.assertIn('--print-certs', text)
+        self.assertIn('not retained', text)
+
+    def test_android_pins_toolchain_compatible_with_local_python_recipe(self):
+        spec = (ROOT / "sbapp/buildozer.spec").read_text()
+        self.assertIn("p4a.commit = 7593f9d62439b5864f7e6204fe382c424e11ad57", spec)
+        self.assertIn("version = '3.11.5'", (ROOT / "recipes/python3/__init__.py").read_text())
+
     def test_android_setup_avoids_retired_tools_package(self):
         text = (WORKFLOWS / "build-android-apk.yml").read_text()
         self.assertIn("packages: platform-tools", text)

@@ -31,12 +31,12 @@ Sideband 兼容其他 LXMF 客户端，例如 [MeshChatX](https://git.quad4.io/R
 仓库保留并修复了原有的 Android 和 Windows GitHub Actions 任务，并沿用现有 cx_Freeze 配置补充 Linux/macOS 原生打包。可手动运行，也会在向 `main` 提交 PR 或推送时验证。安装前请核对 Releases 中的版本、架构、签名状态和 SHA-256 校验值。
 
 - **Windows x86_64**：便携 ZIP，解压完整文件夹后运行 `Sideband.exe`，不要只移动 EXE 文件。未进行 Authenticode 签名。
-- **Android arm64-v8a**：最低 Android 7 / API 24。未提供签名材料时，任务生成 `release-unsigned.apk`，仅供进一步签名，**不能直接安装**。本任务不会创建新的签名密钥。请使用自己的现有派生版密钥签名并验证后再安装；证书不同的 APK 不能直接覆盖上游版或其他签名的安装。
+- **Android arm64-v8a**：最低 Android 7 / API 24。未提供签名材料时，任务生成 `release-unsigned.apk`，仅供进一步签名，**不能直接安装**。本次明确批准的测试发布会生成临时测试密钥，将输出标为 `test-signed.apk`；密钥不会存储或上传，证书指纹记录在 `APK-SIGNATURE.txt`。后续版本若更换证书，可能需要先卸载本版；请先备份身份和消息。普通 PR 与后续推送不自动生成密钥。证书不同的 APK 不能直接覆盖上游版或其他签名的安装。
 - **Linux x86_64**：使用 `sbapp/freeze.py` 构建 AppImage，兼容性受构建系统 libc 与本机图形、音频驱动限制。下载后赋予执行权限再运行；没有 FUSE 的系统可使用 `--appimage-extract` 解包后运行 `squashfs-root/AppRun`。
 - **macOS Apple Silicon / Intel**：分别构建架构对应的 DMG，将其中的 Sideband.app 拖到“应用程序”。未进行 Developer ID 签名或公证；不要将此状态误认为已通过 Apple 验证。
 - **Raspberry Pi / 其他架构**：仅以 Releases 实际提供并验证的架构为准，不要使用 x86_64 安装包。源码或 Python wheel 安装需要各平台依赖，wheel 不是原生独立安装包。
 
-发布任务只汇集同一 `main` 提交的成功构建，生成 SHA-256 校验清单和构建来源记录后发布。实际可用平台、测试范围和签名状态以对应 Release 为准。
+发布任务只针对本次明确命名的测试发布合并，汇集同一 `main` 提交的成功构建，生成 SHA-256 校验清单和构建来源记录后发布。实际可用平台、测试范围和签名状态以对应 Release 为准。
 
 本派生版不能使用上游私有签名密钥；上游 README 中的 APK 证书指纹只适用于上游原版，不适用于本仓库构建。
 

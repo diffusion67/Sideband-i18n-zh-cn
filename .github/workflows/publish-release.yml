@@ -18,6 +18,7 @@ jobs:
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_commit.message, 'Release Sideband 1.9.2 Chinese test build (2026-10-02)') &&
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-22.04
     permissions:
@@ -104,6 +105,7 @@ jobs:
             const signature = assets.get('APK-SIGNATURE.txt')?.toString('utf8') || '';
             const unsigned = /unsigned|not installable/i.test(signature);
             if (!signature) throw new Error('Missing Android signature report');
+            if (unsigned) throw new Error('The approved release requires an installable test-signed Android APK');
             const hashes = [...assets].sort(([a], [b]) => a.localeCompare(b)).map(([name, data]) =>
               `${createHash('sha256').update(data).digest('hex')}  ${name}`).join('\n') + '\n';
             addFile('SHA256SUMS', Buffer.from(hashes));
@@ -122,6 +124,10 @@ jobs:
               unsigned
                 ? '- Android arm64-v8a：此 APK 未签名，不能直接安装；需使用你授权的签名密钥签名。'
                 : '- Android arm64-v8a：签名信息见 APK-SIGNATURE.txt；请核对证书和测试签名说明，不能覆盖使用其他证书签名的版本。',
+              '',
+              'Android 测试签名密钥已在构建结束后丢弃，不用于生产签名。后续版本若使用不同密钥，可能必须先卸载本版；请先备份身份与消息。不能直接覆盖不同证书签名的上游安装。',
+              '公开签名证书信息：',
+              signature,
               '',
               '各平台具体检查见对应 CI 任务；Windows 为归档和进程启动检查，Linux/macOS 包含资源与启动检查，Android 为归档与签名检查。真实 Android 设备安装、通话、网络互联及所有桌面环境未逐一验证。',
               '下载后请按 SHA256SUMS 核验。构建来源见 BUILD-PROVENANCE.json。',
@@ -143,7 +149,7 @@ jobs:
               }
               release = (await github.rest.repos.createRelease({
                 ...repo, tag_name: tag, target_commitish: sha,
-                name: `Sideband ${version} 简体中文`, body, draft: true, prerelease: unsigned
+                name: `Sideband ${version} 简体中文`, body, draft: true, prerelease: true
               })).data;
             }
             const tagRef = await github.rest.git.getRef({...repo, ref: `tags/${tag}`});
@@ -188,7 +194,7 @@ jobs:
             }
             if (release.draft) {
               release = (await github.rest.repos.updateRelease({
-                ...repo, release_id: release.id, draft: false, body, prerelease: unsigned
+                ...repo, release_id: release.id, draft: false, body, prerelease: true
               })).data;
             }
             core.summary.addLink('Verified Sideband release', release.html_url);

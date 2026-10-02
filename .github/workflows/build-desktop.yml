@@ -57,7 +57,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfuse2 patchelf xvfb libgl1-mesa-dri libsdl2-2.0-0 \
-            libopusfile0 portaudio19-dev libcodec2-dev libpulse0 xclip xsel
+            libopusfile0 portaudio19-dev libcodec2-dev libpulse0 libmtdev1 xclip xsel
 
       - name: Install macOS system dependencies
         if: runner.os == 'macOS'
@@ -117,9 +117,9 @@ jobs:
           app="$mount/Sideband.app"
           plutil -lint "$app/Contents/Info.plist"
           file "$app/Contents/MacOS/Sideband"
-          lipo -verify_arch "${{ matrix.arch }}" "$app/Contents/MacOS/Sideband"
+          lipo "$app/Contents/MacOS/Sideband" -verify_arch "${{ matrix.arch }}"
           while IFS= read -r -d '' library; do
-            lipo -verify_arch "${{ matrix.arch }}" "$library"
+            lipo "$library" -verify_arch "${{ matrix.arch }}"
           done < <(find "$app/Contents/Resources/lib" -type f \( -name '*.so' -o -name '*.dylib' \) -print0)
           "$app/Contents/MacOS/Sideband" --version
           python tests/test_desktop_build.py \

@@ -91,6 +91,35 @@ jobs:
             sleep "$delay"
           done
 
+      # One approved test release only. PRs and ordinary future pushes stay unsigned.
+      - name: Test-sign the approved Android release
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          startsWith(github.event.head_commit.message, 'Release Sideband 1.9.2 Chinese test build (2026-10-02)')
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/sideband-test-signing.jks"
+          export SIDEBAND_TEST_STOREPASS=$(python -c 'import secrets; print(secrets.token_urlsafe(32))')
+          echo "::add-mask::$SIDEBAND_TEST_STOREPASS"
+          cleanup() { rm -f "$key"; unset SIDEBAND_TEST_STOREPASS; }
+          trap cleanup EXIT
+          keytool -genkeypair -noprompt -alias sideband-test -keystore "$key" \
+            -storepass:env SIDEBAND_TEST_STOREPASS -keypass:env SIDEBAND_TEST_STOREPASS \
+            -keyalg RSA -keysize 2048 -validity 3650 \
+            -dname 'CN=Sideband zh-CN temporary test build'
+          for apk in dist/*-release-unsigned.apk; do
+            test -f "$apk"
+            aligned="$RUNNER_TEMP/sideband-aligned.apk"
+            output="${apk%-release-unsigned.apk}-test-signed.apk"
+            "$ANDROID_SDK_ROOT/build-tools/33.0.2/zipalign" -f -p 4 "$apk" "$aligned"
+            "$ANDROID_SDK_ROOT/build-tools/33.0.2/apksigner" sign --ks "$key" \
+              --ks-key-alias sideband-test --ks-pass env:SIDEBAND_TEST_STOREPASS \
+              --key-pass env:SIDEBAND_TEST_STOREPASS --out "$output" "$aligned"
+            "$ANDROID_SDK_ROOT/build-tools/33.0.2/apksigner" verify --verbose --print-certs "$output"
+            rm -f "$apk" "$aligned"
+          done
+          # The private key is not retained or uploaded; only the public certificate is reported.
+
       - name: Verify APK
         run: |
           python - <<'PY'
@@ -107,10 +136,16 @@ jobs:
                   assert any(n.startswith("lib/arm64-v8a/") for n in names), f"Missing arm64 libraries: {apk}"
           PY
           test -x "$ANDROID_SDK_ROOT/build-tools/33.0.2/apksigner"
+          certificate_report=$(mktemp)
+          trap 'rm -f "$certificate_report"' EXIT
           : > dist/APK-SIGNATURE.txt
           for apk in dist/*.apk; do
-            if "$ANDROID_SDK_ROOT/build-tools/33.0.2/apksigner" verify --print-certs "$apk"; then
+            if "$ANDROID_SDK_ROOT/build-tools/33.0.2/apksigner" verify --print-certs "$apk" > "$certificate_report"; then
               echo "$(basename "$apk"): signature verified" >> dist/APK-SIGNATURE.txt
+              if [[ "$apk" == *-test-signed.apk ]]; then
+                echo "TEST SIGNATURE ONLY. The private key is not retained. A later build may require uninstalling this version; back up your identity/messages first. Cannot update upstream installations with a different certificate." >> dist/APK-SIGNATURE.txt
+              fi
+              cat "$certificate_report" >> dist/APK-SIGNATURE.txt
             elif [[ "$apk" == *-release-unsigned.apk ]]; then
               echo "$(basename "$apk"): unsigned, not installable until signed with an authorized existing key" >> dist/APK-SIGNATURE.txt
             else

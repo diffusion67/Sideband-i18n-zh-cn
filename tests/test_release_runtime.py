@@ -71,7 +71,7 @@ const artifacts = {
 };
 const files = {
   10: [windowsName],
-  20: ['sideband-1.9.2-arm64-v8a-release-unsigned.apk', 'APK-SIGNATURE.txt'],
+  20: ['sideband-1.9.2-arm64-v8a-test-signed.apk', 'APK-SIGNATURE.txt'],
   30: ['Sideband-1.9.2-x86_64.AppImage'],
   31: ['Sideband-zh-CN-macos-arm64.dmg'],
   32: ['Sideband-zh-CN-macos-x86_64.dmg']
@@ -89,7 +89,7 @@ const fakeFs = {
   },
   readFileSync(filename) {
     return Buffer.from(filename.endsWith('APK-SIGNATURE.txt')
-      ? 'sideband-1.9.2-arm64-v8a-release-unsigned.apk: unsigned, not installable\n'
+      ? (mode === 'unsigned' ? 'unsigned, not installable\n' : 'sideband-1.9.2-arm64-v8a-test-signed.apk: TEST SIGNATURE ONLY; signature verified\n')
       : `fixture bytes for ${filename.split('/').pop()}`);
   }
 };
@@ -195,6 +195,12 @@ class ReleaseRuntimeTests(unittest.TestCase):
             capture_output=True, text=True, check=True, timeout=15,
         )
         return json.loads(result.stdout)
+
+    def test_unsigned_android_cannot_be_published_as_this_test_release(self):
+        result = self.run_scenario("unsigned")
+        self.assertIn("installable test-signed", result["error"] or "")
+        self.assertEqual(result["publicationCalls"], 0)
+        self.assertEqual(result["uploads"], [])
 
     def test_success_publishes_verified_assets_and_provenance(self):
         result = self.run_scenario("normal")

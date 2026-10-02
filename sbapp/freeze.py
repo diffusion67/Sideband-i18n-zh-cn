@@ -7,6 +7,7 @@ the Android and Windows build routes remain separate.
 import importlib.machinery
 import importlib.util
 from pathlib import Path
+import platform
 import re
 import sys
 
@@ -68,6 +69,12 @@ build_options = {
 }
 options = {"build_exe": build_options}
 if sys.platform == "linux":
+    # Kivy opens this by soname through ctypes; dependency analysis cannot
+    # discover that load. CI installs libmtdev1, then bundles it for users.
+    mtdev = Path("/usr/lib") / (platform.machine() + "-linux-gnu") / "libmtdev.so.1"
+    build_options["include_files"].append((str(mtdev), "lib/libmtdev.so.1"))
+    # Override cx_Freeze's default exclusion of system-library directories.
+    build_options["bin_includes"] = ["libmtdev.so"]
     options["bdist_appimage"] = {"target_name": "Sideband-zh-CN", "target_version": version}
 else:
     options["bdist_mac"] = {

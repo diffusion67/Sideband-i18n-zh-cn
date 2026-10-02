@@ -19,6 +19,9 @@ android.gradle_dependencies =  com.android.support:support-compat:28.0.0
 #android.add_aars = patches/support-compat-28.0.0.aar
 
 p4a.local_recipes = ../recipes/
+# Keep the toolchain compatible with the local CPython 3.11 recipes.
+# Newer p4a uses Python 3.14 installed-prefix APIs absent from these recipes.
+p4a.commit = 7593f9d62439b5864f7e6204fe382c424e11ad57
 
 icon.filename = %(source.dir)s/assets/icon.png
 presplash.filename = %(source.dir)s/assets/presplash_small.png

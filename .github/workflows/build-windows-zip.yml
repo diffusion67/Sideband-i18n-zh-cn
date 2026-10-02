@@ -88,6 +88,8 @@ jobs:
           $config = Join-Path $isolated 'profile'
           $env:KIVY_HOME = Join-Path $isolated 'kivy'
           $env:PYTHONPATH = ''
+          $diagnostics = Join-Path $env:RUNNER_TEMP 'sideband-windows-diagnostics'
+          New-Item -ItemType Directory -Force -Path $diagnostics | Out-Null
           $process = Start-Process -FilePath $app.FullName -WorkingDirectory $isolated -ArgumentList @('--config', $config, '--verbose') -PassThru
           try {
             $ready = $false
@@ -105,9 +107,33 @@ jobs:
             }
             if (-not $ready) { throw 'Sideband did not reach its GUI main loop and save configuration' }
           } finally {
-            Get-ChildItem -Path "$env:KIVY_HOME/logs/*.txt" -ErrorAction SilentlyContinue | Get-Content
+            @{
+              process_id = $process.Id
+              exited = $process.HasExited
+              window_title = $process.MainWindowTitle
+              config_saved = (Test-Path (Join-Path $config 'app_storage/sideband_config'))
+              kivy_home = $env:KIVY_HOME
+            } | ConvertTo-Json | Set-Content (Join-Path $diagnostics 'readiness.json')
+            Get-ChildItem -Path "$env:KIVY_HOME/logs/*.txt" -ErrorAction SilentlyContinue | Copy-Item -Destination $diagnostics
+            # Capture only this isolated app's dialog text, not the runner desktop.
+            try {
+              Add-Type -AssemblyName UIAutomationClient
+              $filter = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
+              $elements = [System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants, $filter)
+              $elements | ForEach-Object { $_.Current.Name } | Set-Content (Join-Path $diagnostics 'window-text.txt')
+            } catch { $_ | Out-String | Set-Content (Join-Path $diagnostics 'ui-automation-error.txt') }
+            Get-ChildItem -Path $diagnostics -File | Get-Content
             if (-not $process.HasExited) { taskkill /PID $process.Id /T /F }
           }
+
+      - name: Upload startup diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sideband-windows-diagnostics-${{ github.run_number }}
+          path: ${{ runner.temp }}/sideband-windows-diagnostics
+          if-no-files-found: warn
+          retention-days: 3
 
       - name: Upload Windows ZIP
         uses: actions/upload-artifact@v4

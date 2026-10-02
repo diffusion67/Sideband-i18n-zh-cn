@@ -27,6 +27,8 @@ def verify_resources(resource_root):
         assert path.is_file() and path.stat().st_size > 0, f"Missing packaged resource: {name}"
     assert list((lib / "LXST").glob("filterlib*.so")), "Missing native LXST filter library"
     assert list((lib / "pycodec2").glob("*.so")), "Missing native Codec2 extension"
+    if sys.platform == "linux":
+        assert (lib / "libmtdev.so.1").is_file(), "Missing native multitouch library libmtdev.so.1"
 
 
 def smoke(executable, timeout=90):
@@ -142,7 +144,20 @@ class DesktopBuildTests(unittest.TestCase):
             self.assertIn(expected, text)
         self.assertNotIn("contents: write", text)
         self.assertNotIn("continue-on-error", text)
-        self.assertIn("lipo -verify_arch", text)
+
+    def test_linux_bundles_mtdev_instead_of_relying_on_host_installation(self):
+        options = freezer_config("linux")["options"]["build_exe"]
+        destinations = {str(dst) for _, dst in options["include_files"]}
+        self.assertIn("lib/libmtdev.so.1", destinations)
+        self.assertIn("libmtdev.so", options.get("bin_includes", []))
+        text = (ROOT / ".github/workflows/build-desktop.yml").read_text()
+        self.assertIn("libmtdev1", text)
+
+    def test_lipo_places_input_before_variadic_architectures(self):
+        text = (ROOT / ".github/workflows/build-desktop.yml").read_text()
+        self.assertIn('lipo "$app/Contents/MacOS/Sideband" -verify_arch "${{ matrix.arch }}"', text)
+        self.assertIn('lipo "$library" -verify_arch "${{ matrix.arch }}"', text)
+        self.assertNotIn('lipo -verify_arch', text)
 
     def test_ci_pins_numpy_compatible_with_freezer_hook(self):
         text = (ROOT / ".github/workflows/build-desktop.yml").read_text()
