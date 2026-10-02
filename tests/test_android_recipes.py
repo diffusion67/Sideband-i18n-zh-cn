@@ -1,5 +1,6 @@
 """Offline regressions for the legacy CPython Android cross-build toolchain."""
 
+import configparser
 import importlib.util
 import os
 from pathlib import Path
@@ -22,6 +23,17 @@ class AndroidRecipeTests(unittest.TestCase):
         requirements = [line.split("#", 1)[0].strip()
                         for line in CONSTRAINTS.read_text().splitlines()]
         self.assertIn("build==1.4.2", requirements)
+
+    def test_numpy_uses_fixed_upstream_tag_required_by_lxst(self):
+        spec = configparser.ConfigParser(interpolation=None)
+        spec.read(ROOT / "sbapp/buildozer.spec")
+        requirements = spec["app"]["requirements"].split(",")
+        numpy = [item.strip() for item in requirements
+                 if item.strip().split("==", 1)[0] == "numpy"]
+        # p4a passes this exact value to git checkout, so retain the v prefix.
+        # 2.3.4 fixes unique.cpp's missing <unordered_map> and meets LXST's floor.
+        self.assertEqual(numpy, ["numpy==v2.3.4"])
+        self.assertEqual(spec["app"]["android.ndk"], "25b")
 
     @unittest.skipUnless(importlib.util.find_spec("build"),
                          "Install build with recipes/android-build-constraints.txt")
