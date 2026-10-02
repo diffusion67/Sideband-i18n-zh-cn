@@ -2,6 +2,13 @@ name: Build Windows ZIP
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -54,11 +61,24 @@ jobs:
           KIVY_GL_BACKEND: mock
         run: winbuild.bat
 
+      - name: Verify Windows ZIP
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          packages = list(Path("dist").glob("*.zip"))
+          assert packages, "No Windows ZIP was produced"
+          for package in packages:
+              with zipfile.ZipFile(package) as archive:
+                  assert archive.testzip() is None, f"Corrupt ZIP: {package}"
+                  assert any(n.endswith("/Sideband.exe") for n in archive.namelist()), f"Missing executable: {package}"
+          PY
+
       - name: Upload Windows ZIP
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sideband-windows-zip-${{ github.run_number }}
-          path: Sideband_*/**
-          if-no-files-found: warn
+          path: dist/*.zip
+          if-no-files-found: error
           retention-days: 14

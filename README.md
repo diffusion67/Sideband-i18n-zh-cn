@@ -3,9 +3,28 @@ Sideband <img align="right" src="https://img.shields.io/badge/License-CC%20BY--N
 
 [简体中文说明](README.zh-CN.md)
 
-*This repository is [a public mirror](./MIRROR.md). All development is happening elsewhere. While new releases are posted here, the latest source code is only available over Reticulum itself.*
+> [!WARNING]
+> Several hastily launched, incorrect, and in most cases entirely LLM-generated fakes of Sideband and associated tools are currently being circulated and marketed. Most of these "projects" violate the license that Sideband was published under, but claim independent ownership and license grants.
+>
+> Such claims or grants are **not legally valid**, and **not** recognized by the Sideband author and copyright holder.
+>
+> Any claimed assertion of copyright or grant of license that such projects are making are [void grants](https://reticulum.network/manual/brandolinis.html#void-grants-legal-foundations-of-machine-generated-code).
+>
+> Both the violators themselves, and **all** downstream projects using the infringing derivatives, are **directly** and **personally** liable for the legal consequences.
+>
+> For more detailed information, see the relevant sections of the [Brandolini's Reference](https://reticulum.network/manual/brandolinis.html) chapter of the Reticulum Manual. For software and projects recognized by the Reticulum community, see the [Programs Using Reticulum](https://reticulum.network/manual/software.html) chapter.
+>
+> Do **not** use these "projects", they are a hazard to the entire ecosystem we have been carefully building over the last ten years.
+
+*Due to the blatant copyright infringement, LLM-laundering and disrespect for open-source developers, the source code in this repository is no longer updated. All development is happening over Reticulum, where the latest source is always available.*
+
+*Packages and updates continue to ship on PyPI and over `rngit`. Compiled APKs, AppImages, wheels and portable exe bundles will continue to be published here as well.*
+
+---
 
 To understand the foundational philosophy and goals of this system, read the [Zen of Reticulum](Zen%20of%20Reticulum.md).
+
+For an Android-specific quickstart guide for new users, see the community-provided [Sideband Quick-start by RNS Moscow](https://docs.rns.moscow/sideband-quickstart/).
 
 Sideband is an extensible LXMF messaging and LXST telephony client, situational awareness tracker and remote control and monitoring system for Android, Linux, macOS and Windows. It allows you to communicate with other people or LXMF-compatible systems over Reticulum networks using LoRa, Packet Radio, WiFi, I2P, Encrypted QR Paper Messages, or anything else Reticulum supports.
 

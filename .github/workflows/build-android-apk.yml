@@ -2,6 +2,13 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -54,9 +61,9 @@ jobs:
       - name: Install Android build prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential git libffi-dev libssl-dev libsqlite3-dev unzip zip
+          sudo apt-get install -y build-essential git libffi-dev libssl-dev libsqlite3-dev patchelf unzip zip
           python -m pip install --upgrade pip
-          python -m pip install buildozer cython
+          python -m pip install buildozer==1.6.0 cython==0.29.37
           sdkmanager --install "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROIDSDK=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
@@ -82,11 +89,43 @@ jobs:
             sleep "$delay"
           done
 
+      - name: Verify APK
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apks = list(Path("dist").glob("*.apk"))
+          assert apks, "No release APK was produced"
+          for apk in apks:
+              with zipfile.ZipFile(apk) as archive:
+                  names = archive.namelist()
+                  assert archive.testzip() is None, f"Corrupt APK: {apk}"
+                  assert "AndroidManifest.xml" in names, f"Missing manifest: {apk}"
+                  assert "classes.dex" in names, f"Missing Android code: {apk}"
+                  assert any(n.startswith("lib/arm64-v8a/") for n in names), f"Missing arm64 libraries: {apk}"
+          PY
+          test -x "$ANDROID_SDK_ROOT/build-tools/33.0.2/apksigner"
+          : > dist/APK-SIGNATURE.txt
+          for apk in dist/*.apk; do
+            if "$ANDROID_SDK_ROOT/build-tools/33.0.2/apksigner" verify --print-certs "$apk"; then
+              echo "$(basename "$apk"): signature verified" >> dist/APK-SIGNATURE.txt
+            elif [[ "$apk" == *-release-unsigned.apk ]]; then
+              echo "$(basename "$apk"): unsigned, not installable until signed with an authorized existing key" >> dist/APK-SIGNATURE.txt
+            else
+              echo "Unexpected signature verification failure: $apk" >&2
+              exit 1
+            fi
+          done
+          cat dist/APK-SIGNATURE.txt
+          sha256sum dist/*.apk > dist/SHA256SUMS
+
       - name: Upload APK
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sideband-android-apk-${{ github.run_number }}
-          path: dist/*.apk
-          if-no-files-found: warn
+          path: |
+            dist/*.apk
+            dist/APK-SIGNATURE.txt
+            dist/SHA256SUMS
+          if-no-files-found: error
           retention-days: 14

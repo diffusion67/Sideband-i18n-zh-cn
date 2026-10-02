@@ -28,7 +28,7 @@ class OpusFileRecipe(Recipe):
             env['DEPS_CFLAGS'] = '-I{}/include -I{}/include'.format(
                 libogg_dir, libopus_dir
             )
-            env['DEPS_LIBS'] = '-L{}/.libs -logg -L{}/.libs -lopus'.format(
+            env['DEPS_LIBS'] = '-L{}/src/.libs -logg -L{}/.libs -lopus'.format(
                 libogg_dir, libopus_dir
             )
             
