@@ -10,6 +10,9 @@ def excerpt(text):
     text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', text)
     text = re.sub(r'[\x00-\x08\x0b-\x1f\x7f]', '', text)
     text = text.split('# ENVIRONMENT:', 1)[0]
+    # p4a emits a separate shell environment dump before its command summary.
+    text = re.sub(r'^\[INFO\]:\s*ENV:\n.*?(?=^\[INFO\]:\s*COMMAND:|\Z)',
+                  '[build environment omitted]\n', text, flags=re.M | re.S)
     lines = []
     private_key = False
     for line in text.splitlines():

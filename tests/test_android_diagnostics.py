@@ -23,6 +23,19 @@ class AndroidDiagnosticTests(unittest.TestCase):
                        'example-secret-body', 'example-secret', 'private-environment'):
             self.assertNotIn(secret, result)
 
+    def test_p4a_environment_block_is_omitted_but_following_error_survives(self):
+        path = ROOT / '.github/scripts/collect_android_error.py'
+        spec = importlib.util.spec_from_file_location('android_diagnostics', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        result = module.excerpt("Compiler failure\n[INFO]:    ENV:\n"
+                                "export ORDINARY='private-value\nmultiline-value'\n"
+                                "\n[INFO]:    COMMAND:\ngradlew failed\n")
+        self.assertNotIn('private-value', result)
+        self.assertNotIn('multiline-value', result)
+        self.assertIn('Compiler failure', result)
+        self.assertIn('gradlew failed', result)
+
     def test_terminal_controls_are_removed_before_diagnostic_upload(self):
         path = ROOT / '.github/scripts/collect_android_error.py'
         spec = importlib.util.spec_from_file_location('android_diagnostics', path)

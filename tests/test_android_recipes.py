@@ -5,6 +5,7 @@ import configparser
 import importlib.util
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,7 @@ import sysconfig
 import tempfile
 import textwrap
 import unittest
+import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +42,24 @@ class AndroidRecipeTests(unittest.TestCase):
         spec = configparser.ConfigParser(interpolation=None)
         spec.read(ROOT / "sbapp/buildozer.spec")
         self.assertIn("cffi==2.0.0", spec["app"]["requirements"].split(","))
+
+    def test_manifest_xml_resources_are_present_before_first_build(self):
+        spec = configparser.ConfigParser(interpolation=None)
+        spec.read(ROOT / "sbapp/buildozer.spec")
+        resources = [ROOT / "sbapp" / value.strip()
+                     for value in spec["app"].get("android.res_xml", "").split(",")
+                     if value.strip()]
+        references = set()
+        for filename in ("intent-filter.xml", "AndroidManifest.tmpl.xml"):
+            manifest = (ROOT / "sbapp/patches" / filename).read_text()
+            references.update(re.findall(r"@xml/([a-z0-9_]+)", manifest))
+        self.assertTrue(references, "Expected custom manifest XML references")
+        self.assertFalse(references - {path.stem for path in resources},
+                         "Manifest XML resources must be supplied before prebake")
+        for resource in resources:
+            with self.subTest(resource=resource.name):
+                self.assertTrue(resource.is_file())
+                ET.parse(resource)
 
     def test_setuptools_recipe_builds_and_installs_a_real_source_project(self):
         path = ROOT / "recipes/setuptools/__init__.py"

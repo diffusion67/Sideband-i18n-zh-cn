@@ -50,6 +50,8 @@ android.archs = arm64-v8a
 services = sidebandservice:services/sidebandservice.py:foreground
 android.whitelist = lib-dynload/termios.so
 android.manifest.intent_filters = patches/intent-filter.xml
+# prebake runs before Makefile injection, so XML resources must exist on its first build.
+android.res_xml = patches/device_filter.xml,patches/file_paths.xml
 
 # android.add_libs_armeabi_v7a = ../libs/armeabi/*.so*
 # android.add_libs_arm64_v8a = ../libs/arm64/*.so*
