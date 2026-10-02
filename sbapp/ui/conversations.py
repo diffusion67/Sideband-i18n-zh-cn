@@ -1,4 +1,9 @@
 import RNS
+
+if RNS.vendor.platformutils.get_platform() == "android":
+    from i18n import translate as tr
+else:
+    from sbapp.i18n import translate as tr
 import time
 
 from kivy.metrics import dp,sp
@@ -73,21 +78,21 @@ class ConversationEntry(OneLineAvatarIconListItem):
     def __init_menus(self):
         dmi_h = 40
         if ConversationEntry.voice_dropdown == None:
-            dmv_items = [ { "viewclass": "OneLineListItem", "text": "Edit", "height": dp(dmi_h), "on_release": self.edit_action},
-                          { "text": "Copy Identity Hash", "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.copy_address_action},
-                          { "text": "Delete", "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.delete_conversation_action } ]
+            dmv_items = [ { "viewclass": "OneLineListItem", "text": tr("Edit"), "height": dp(dmi_h), "on_release": self.edit_action},
+                          { "text": tr("Copy Identity Hash"), "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.copy_address_action},
+                          { "text": tr("Delete"), "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.delete_conversation_action } ]
 
             ConversationEntry.voice_dropdown = MDDropdownMenu(caller=None, items=dmv_items, position="auto", width=dp(256), elevation=0, radius=dp(3))
             ConversationEntry.voice_dropdown.effect_cls = ScrollEffect
             ConversationEntry.voice_dropdown.md_bg_color = self.app.color_hover
 
         if ConversationEntry.conversation_dropdown == None:
-            dm_items = [ { "viewclass": "OneLineListItem", "text": "Edit", "height": dp(dmi_h), "on_release": self.edit_action },
-                         { "viewclass": "OneLineListItem", "text": "Call", "height": dp(dmi_h), "on_release": self.call_action },
-                         { "text": "Copy Address", "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.copy_address_action },
-                         { "text": "Clear Messages", "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.clear_messages_action },
-                         { "text": "Clear Telemetry", "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.clear_telemetry_action },
-                         { "text": "Delete Conversation", "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.delete_conversation_action } ]
+            dm_items = [ { "viewclass": "OneLineListItem", "text": tr("Edit"), "height": dp(dmi_h), "on_release": self.edit_action },
+                         { "viewclass": "OneLineListItem", "text": tr("Call"), "height": dp(dmi_h), "on_release": self.call_action },
+                         { "text": tr("Copy Address"), "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.copy_address_action },
+                         { "text": tr("Clear Messages"), "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.clear_messages_action },
+                         { "text": tr("Clear Telemetry"), "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.clear_telemetry_action },
+                         { "text": tr("Delete Conversation"), "viewclass": "OneLineListItem", "height": dp(dmi_h), "on_release": self.delete_conversation_action } ]
 
             ConversationEntry.conversation_dropdown = MDDropdownMenu(caller=None, items=dm_items, position="auto", width=dp(256), elevation=0, radius=dp(3))
             ConversationEntry.conversation_dropdown.effect_cls = ScrollEffect
@@ -117,12 +122,12 @@ class ConversationEntry(OneLineAvatarIconListItem):
             ptt_enabled = self.app.sideband.ptt_enabled(dest, conv_data=cd)
             send_telemetry = self.app.sideband.should_send_telemetry(dest, conv_data=cd)
             allow_requests = self.app.sideband.requests_allowed_from(dest, conv_data=cd)
-            yes_button = MDRectangleFlatButton(text="Save",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_accept, text_color=self.app.color_accept)
-            no_button = MDRectangleFlatButton(text="Cancel",font_size=dp(18))
+            yes_button = MDRectangleFlatButton(text=tr("Save"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_accept, text_color=self.app.color_accept)
+            no_button = MDRectangleFlatButton(text=tr("Cancel"),font_size=dp(18))
             dialog_content = ConvSettings(disp_name=disp_name, context_dest=RNS.hexrep(dest, delimit=False), trusted=is_trusted,
                                           telemetry=send_telemetry, allow_requests=allow_requests, is_object=is_object, ptt_enabled=ptt_enabled)
             dialog_content.ids.name_field.font_name = self.app.input_font
-            dialog = MDDialog(title="Edit Conversation", text="With "+RNS.prettyhexrep(dest),
+            dialog = MDDialog(title=tr("Edit Conversation"), text=tr("With ")+RNS.prettyhexrep(dest),
                               type="custom", content_cls=dialog_content, buttons=[yes_button, no_button])
             dialog.d_content = dialog_content
             def dl_no(s): dialog.dismiss()
@@ -165,9 +170,9 @@ class ConversationEntry(OneLineAvatarIconListItem):
     def delete_conversation_action(self):
         context_dest = ConversationEntry.conversation_dropdown.context_dest; caller = ConversationEntry.conversation_dropdown.caller
         if ConversationEntry.delete_dialog == None:
-            yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
-            no_button = MDRectangleFlatButton(text="No",font_size=dp(18))
-            ConversationEntry.delete_dialog = MDDialog( title="Delete conversation?", buttons=[ yes_button, no_button ])
+            yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
+            no_button = MDRectangleFlatButton(text=tr("No"),font_size=dp(18))
+            ConversationEntry.delete_dialog = MDDialog( title=tr("Delete conversation?"), buttons=[ yes_button, no_button ])
             def dl_yes(s):
                 ConversationEntry.delete_dialog.dismiss()
                 self.app.sideband.delete_conversation(ConversationEntry.conversation_dropdown.context_dest)
@@ -186,15 +191,15 @@ class ConversationEntry(OneLineAvatarIconListItem):
         context_dest = ConversationEntry.conversation_dropdown.context_dest; caller = ConversationEntry.conversation_dropdown.caller
         identity = RNS.Identity.recall(ConversationEntry.conversation_dropdown.context_dest)
         if identity: self.app.dial_action(identity.hash)
-        else: toast("Can't call, identity unknown")
+        else: toast(tr("Can't call, identity unknown"))
         self.dropdown_dismiss()
 
     def clear_messages_action(self):
         context_dest = ConversationEntry.conversation_dropdown.context_dest; caller = ConversationEntry.conversation_dropdown.caller
         if ConversationEntry.clear_dialog == None:
-            yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
-            no_button = MDRectangleFlatButton(text="No",font_size=dp(18))
-            ConversationEntry.clear_dialog = MDDialog(title="Clear all messages in conversation?", buttons=[ yes_button, no_button ])
+            yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
+            no_button = MDRectangleFlatButton(text=tr("No"),font_size=dp(18))
+            ConversationEntry.clear_dialog = MDDialog(title=tr("Clear all messages in conversation?"), buttons=[ yes_button, no_button ])
             
             def dl_yes(s):
                 ConversationEntry.clear_dialog.dismiss()
@@ -212,9 +217,9 @@ class ConversationEntry(OneLineAvatarIconListItem):
     def clear_telemetry_action(self):
         context_dest = ConversationEntry.conversation_dropdown.context_dest; caller = ConversationEntry.conversation_dropdown.caller
         if ConversationEntry.clear_telemetry_dialog == None:
-            yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
-            no_button = MDRectangleFlatButton(text="No",font_size=dp(18))
-            ConversationEntry.clear_telemetry_dialog = MDDialog( title="Clear all telemetry related to this peer?", buttons=[ yes_button, no_button ])
+            yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
+            no_button = MDRectangleFlatButton(text=tr("No"),font_size=dp(18))
+            ConversationEntry.clear_telemetry_dialog = MDDialog( title=tr("Clear all telemetry related to this peer?"), buttons=[ yes_button, no_button ])
             def dl_yes(s):
                 ConversationEntry.clear_telemetry_dialog.dismiss()
                 self.app.sideband.clear_telemetry(self.conversation_dropdown.context_dest)
@@ -271,12 +276,12 @@ class Conversations():
     def update(self):
         self.context_dests = self.app.sideband.list_conversations(conversations=self.app.include_conversations, objects=self.app.include_objects)
         
-        view_title = "Conversations"
+        view_title = tr("Conversations")
         if self.app.include_conversations:
             if self.app.include_objects:
-                view_title = "Conversations & Objects"
+                view_title = tr("Conversations & Objects")
         elif self.app.include_objects:
-            view_title = "Objects"
+            view_title = tr("Objects")
         self.screen.ids.conversations_bar.title = view_title
 
         self.update_widget()

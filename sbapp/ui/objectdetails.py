@@ -1,6 +1,11 @@
 import time
 import RNS
 
+if RNS.vendor.platformutils.get_platform() == "android":
+    from i18n import translate as tr
+else:
+    from sbapp.i18n import translate as tr
+
 from kivy.metrics import dp,sp
 from kivy.lang.builder import Builder
 from kivy.core.clipboard import Clipboard
@@ -31,6 +36,40 @@ if RNS.vendor.platformutils.get_platform() == "android":
 else:
     from .helpers import ts_format
 
+def _sensor_display_name(name):
+    """Localize built-in labels for display without changing sensor/protocol keys."""
+    labels = {
+        "Timestamp": tr("Timestamp"),
+        "Information": tr("Information"),
+        "Received": tr("Received"),
+        "Battery": tr("Battery"),
+        "Ambient Pressure": tr("Ambient Pressure"),
+        "Location": tr("Location"),
+        "Physical Link": tr("Physical Link"),
+        "Temperature": tr("Temperature"),
+        "Ambient Temperature": tr("Ambient Temperature"),
+        "Relative Humidity": tr("Relative Humidity"),
+        "Magnetic Field": tr("Magnetic Field"),
+        "Ambient Light": tr("Ambient Light"),
+        "Gravity": tr("Gravity"),
+        "Angular Velocity": tr("Angular Velocity"),
+        "Acceleration": tr("Acceleration"),
+        "Proximity": tr("Proximity"),
+        "Power Consumption": tr("Power Consumption"),
+        "Power Production": tr("Power Production"),
+        "Processor": tr("Processor"),
+        "Random Access Memory": tr("Random Access Memory"),
+        "Non-Volatile Memory": tr("Non-Volatile Memory"),
+        "Custom": tr("Custom"),
+        "Tank": tr("Tank"),
+        "Fuel": tr("Fuel"),
+        "Reticulum Transport": tr("Reticulum Transport"),
+        "LXMF Propagation": tr("LXMF Propagation"),
+        "Connection Map": tr("Connection Map"),
+    }
+    return labels.get(name, name)
+
+
 class ObjectDetails():
     def __init__(self, app, object_hash = None):
         self.app = app
@@ -58,9 +97,9 @@ class ObjectDetails():
             self.telemetry_list.app = self.app
             self.screen.ids.object_details_container.add_widget(self.telemetry_list)
 
-            ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+            ok_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
             self.info_dialog = MDDialog(
-                title="Info",
+                title=tr("Info"),
                 text="",
                 buttons=[ ok_button ],
             )
@@ -95,11 +134,11 @@ class ObjectDetails():
 
     def delete_telemetry_action(self, sender=None):
         if self.delete_dialog == None:
-            yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
-            no_button = MDRectangleFlatButton(text="No",font_size=dp(18))
+            yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
+            no_button = MDRectangleFlatButton(text=tr("No"),font_size=dp(18))
             self.delete_dialog = MDDialog(
-                title="Clear telemetry?",
-                text="This will permanently delete all collected telemetry for this object.",
+                title=tr("Clear telemetry?"),
+                text=tr("This will permanently delete all collected telemetry for this object."),
                 buttons=[ yes_button, no_button ],
             )
             def dl_yes(s):
@@ -122,7 +161,7 @@ class ObjectDetails():
         if self.object_hash != None:
             self.set_source(self.object_hash, from_conv=self.from_conv, from_objects=self.from_objects, from_telemetry=self.from_telemetry)
             if not notoast:
-                toast("Reloaded telemetry for object")
+                toast(tr("Reloaded telemetry for object"))
 
     def set_source(self, source_dest, from_conv=False, from_objects=False, from_telemetry=False, prefetched=None):
         try:
@@ -153,9 +192,9 @@ class ObjectDetails():
             else:
                 self.screen.ids.track_button.disabled = False
                 if self.app.sideband.is_tracking(source_dest):
-                    self.screen.ids.track_button.text = "Stop Live Tracking"
+                    self.screen.ids.track_button.text = tr("Stop Live Tracking")
                 else:
-                    self.screen.ids.track_button.text = "Start Live Tracking"
+                    self.screen.ids.track_button.text = tr("Start Live Tracking")
 
             self.coords = None
             self.telemetry_list.data = []
@@ -164,9 +203,9 @@ class ObjectDetails():
             self.screen.ids.name_label.text = pds
 
             if source_dest == own_address:
-                self.screen.ids.name_label.text = pds+" (this device)"
+                self.screen.ids.name_label.text = pds+tr(" (this device)")
             elif source_dest == self.app.sideband.config["telemetry_collector"]:
-                self.screen.ids.name_label.text = pds+" (collector)"
+                self.screen.ids.name_label.text = pds+tr(" (collector)")
 
             self.screen.ids.coordinates_button.disabled = True
             self.screen.ids.object_appearance.icon = appearance[0]
@@ -231,32 +270,32 @@ class ObjectDetails():
         if not self.viewing_self:
             if not self.app.sideband.is_tracking(self.object_hash):
                 self.app.sideband.start_tracking(self.object_hash, interval=59, duration=7*24*60*60)
-                self.screen.ids.track_button.text = "Stop Live Tracking"
+                self.screen.ids.track_button.text = tr("Stop Live Tracking")
             else:
                 self.app.sideband.stop_tracking(self.object_hash)
-                self.screen.ids.track_button.text = "Start Live Tracking"
+                self.screen.ids.track_button.text = tr("Start Live Tracking")
 
     def send_update(self):
         if not self.viewing_self:
             result = self.app.sideband.send_latest_telemetry(to_addr=self.object_hash)
             if result == "destination_unknown":
-                title_str = "Unknown Destination"
-                info_str  = "No keys known for the destination. Connected reticules have been queried for the keys."
+                title_str = tr("Unknown Destination")
+                info_str  = tr("No keys known for the destination. Connected reticules have been queried for the keys.")
             elif result == "in_progress":
-                title_str = "Transfer In Progress"
-                info_str  = "There is already an outbound telemetry transfer in progress for this peer."
+                title_str = tr("Transfer In Progress")
+                info_str  = tr("There is already an outbound telemetry transfer in progress for this peer.")
             elif result == "already_sent":
-                title_str = "Already Delivered"
-                info_str  = "The current telemetry data was already sent and delivered to the peer or propagation network."
+                title_str = tr("Already Delivered")
+                info_str  = tr("The current telemetry data was already sent and delivered to the peer or propagation network.")
             elif result == "sent":
-                title_str = "Update Sent"
-                info_str  = "A telemetry update was sent to the peer."
+                title_str = tr("Update Sent")
+                info_str  = tr("A telemetry update was sent to the peer.")
             elif result == "not_sent":
-                title_str = "Not Sent"
-                info_str  = "A telemetry update could not be sent."
+                title_str = tr("Not Sent")
+                info_str  = tr("A telemetry update could not be sent.")
             else:
-                title_str = "Unknown Status"
-                info_str  = "The status of the telemetry update is unknown."
+                title_str = tr("Unknown Status")
+                info_str  = tr("The status of the telemetry update is unknown.")
             
             self.info_dialog.title = title_str
             self.info_dialog.text  = info_str
@@ -267,20 +306,20 @@ class ObjectDetails():
             result = self.app.sideband.request_latest_telemetry(from_addr=self.object_hash)
 
             if result == "destination_unknown":
-                title_str = "Unknown Destination"
-                info_str  = "No keys known for the destination. Connected reticules have been queried for the keys."
+                title_str = tr("Unknown Destination")
+                info_str  = tr("No keys known for the destination. Connected reticules have been queried for the keys.")
             elif result == "in_progress":
-                title_str = "Transfer In Progress"
-                info_str  = "There is already a telemetry request transfer in progress for this peer."
+                title_str = tr("Transfer In Progress")
+                info_str  = tr("There is already a telemetry request transfer in progress for this peer.")
             elif result == "sent":
-                title_str = "Request Sent"
-                info_str  = "A telemetry request was sent to the peer. The peer should send any available telemetry shortly."
+                title_str = tr("Request Sent")
+                info_str  = tr("A telemetry request was sent to the peer. The peer should send any available telemetry shortly.")
             elif result == "not_sent":
-                title_str = "Not Sent"
-                info_str  = "A telemetry request could not be sent."
+                title_str = tr("Not Sent")
+                info_str  = tr("A telemetry request could not be sent.")
             else:
-                title_str = "Unknown Status"
-                info_str  = "The status of the telemetry request is unknown."
+                title_str = tr("Unknown Status")
+                info_str  = tr("The status of the telemetry request is unknown.")
             
             self.info_dialog.title = title_str
             self.info_dialog.text  = info_str
@@ -302,10 +341,10 @@ class ObjectDetails():
         return self.widget
 
     def copy_coordinates(self, sender=None):
-        Clipboard.copy(str(self.coords or "No data"))
+        Clipboard.copy(str(self.coords or tr("No data")))
 
     def copy_telemetry(self, sender=None):
-        Clipboard.copy(str(self.raw_telemetry or "No data"))
+        Clipboard.copy(str(self.raw_telemetry or tr("No data")))
 
 class ODView(OneLineIconListItem):
     icon = StringProperty()
@@ -359,15 +398,16 @@ class RVDetails(MDRecycleView):
                     release_function = pass_job
                     formatted_values = None
                     name = s["name"]
+                    display_name = _sensor_display_name(name)
                     
                     if name == "Timestamp":
                         ts = s["values"]["UTC"]
                         if ts != None:
                             ts_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-                            formatted_values = f"Recorded [b]{RNS.prettytime(time.time()-ts, compact=True)} ago[/b] ({ts_str})"
+                            formatted_values = tr('Recorded [b]{value1} ago[/b] ({ts_str})', value1=RNS.prettytime(time.time() - ts, compact=True).replace(" and ", tr(" and ")), ts_str=ts_str)
                             def copy_info(e=None):
                                 Clipboard.copy(ts_str)
-                                toast("Copied to clipboard")
+                                toast(tr("Copied to clipboard"))
                             release_function = copy_info
                     
                     elif name == "Information":
@@ -376,10 +416,10 @@ class RVDetails(MDRecycleView):
                             istr = str(info)
                             def copy_info(e=None):
                                 Clipboard.copy(istr)
-                                toast("Copied to clipboard")
+                                toast(tr("Copied to clipboard"))
                             release_function = copy_info
                             external_text = multilingual_markup(escape_markup(istr).encode("utf-8")).decode("utf-8")
-                            formatted_values = f"[b]Information[/b]: {external_text}"
+                            formatted_values = tr('[b]Information[/b]: {external_text}', external_text=external_text)
                     
                     elif name == "Received":
                         formatted_values = ""
@@ -388,29 +428,29 @@ class RVDetails(MDRecycleView):
 
                         if by == self.app.sideband.lxmf_destination.hash:
                             if via == self.delegate.object_hash:
-                                formatted_values = "Collected directly by [b]this device[/b], directly [b]from emitter[/b]"
+                                formatted_values = tr("Collected directly by [b]this device[/b], directly [b]from emitter[/b]")
                             else:
                                 via_str = self.app.sideband.peer_display_name(via)
                                 if via_str == None:
-                                    via_str = "an [b]unknown peer[/b]"
-                                formatted_values = f"Collected directly by [b]this device[/b], via {via_str}"
+                                    via_str = tr("an [b]unknown peer[/b]")
+                                formatted_values = tr('Collected directly by [b]this device[/b], via {via_str}', via_str=via_str)
                         else:
                             if via != None and via == by:
                                 vstr = self.app.sideband.peer_display_name(via)
-                                formatted_values = f"Received from, and collected by [b]{vstr}[/b]"
+                                formatted_values = tr('Received from, and collected by [b]{vstr}[/b]', vstr=vstr)
                             
                             else:
                                 if via != None:
                                     vstr = self.app.sideband.peer_display_name(via)
-                                    via_str = f"Received from [b]{vstr}[/b]"
+                                    via_str = tr('Received from [b]{vstr}[/b]', vstr=vstr)
                                 else:
-                                    via_str = "Received from an [b]unknown peer[/b]"
+                                    via_str = tr("Received from an [b]unknown peer[/b]")
                                 
                                 if by != None:
                                     dstr = self.app.sideband.peer_display_name(by)
-                                    by_str = f", collected by [b]{dstr}[/b]"
+                                    by_str = tr(', collected by [b]{dstr}[/b]', dstr=dstr)
                                 else:
-                                    by_str = f", collected by an [b]unknown peer[/b]"
+                                    by_str = tr(', collected by an [b]unknown peer[/b]')
 
                                 formatted_values = f"{via_str}{by_str}"
 
@@ -418,11 +458,13 @@ class RVDetails(MDRecycleView):
                             formatted_values = None
 
                         if not by == self.app.sideband.lxmf_destination.hash and not self.app.sideband.is_trusted(by):
-                            extra_entries.append({"icon": "alert", "text": "Collected by a [b]non-trusted[/b] peer"})
+                            extra_entries.append({"icon": "alert", "text": tr("Collected by a [b]non-trusted[/b] peer")})
                         
                     elif name == "Battery":
                         p = s["values"]["percent"]
                         cs = s["values"]["_meta"]
+                        if cs == "charging": cs = tr("charging")
+                        elif cs == "discharging": cs = tr("discharging")
                         t = None
                         if "temperature" in s["values"]:
                             t = s["values"]["temperature"]
@@ -432,11 +474,11 @@ class RVDetails(MDRecycleView):
                             else:
                                 cs_str = f" ({cs})"
 
-                        if p != None: formatted_values = f"{name} [b]{p}%[/b]"+cs_str
+                        if p != None: formatted_values = f"{display_name} [b]{p}%[/b]"+cs_str
                     
                     elif name == "Ambient Pressure":
                         p = s["values"]["mbar"]
-                        if p != None: formatted_values = f"{name} [b]{p} mbar[/b]"
+                        if p != None: formatted_values = f"{display_name} [b]{p} mbar[/b]"
                         dt = "mbar"
                         if "deltas" in s and dt in s["deltas"] and s["deltas"][dt] != None:
                             d = s["deltas"][dt]
@@ -444,7 +486,7 @@ class RVDetails(MDRecycleView):
                     
                     elif name == "Ambient Temperature":
                         c = s["values"]["c"]
-                        if c != None: formatted_values = f"{name} [b]{c}° C[/b]"
+                        if c != None: formatted_values = f"{display_name} [b]{c}° C[/b]"
                         dt = "c"
                         if "deltas" in s and dt in s["deltas"] and s["deltas"][dt] != None:
                             d = s["deltas"][dt]
@@ -452,7 +494,7 @@ class RVDetails(MDRecycleView):
                     
                     elif name == "Relative Humidity":
                         r = s["values"]["percent"]
-                        if r != None: formatted_values = f"{name} [b]{r}%[/b]"
+                        if r != None: formatted_values = f"{display_name} [b]{r}%[/b]"
                         dt = "percent"
                         if "deltas" in s and dt in s["deltas"] and s["deltas"][dt] != None:
                             d = s["deltas"][dt]
@@ -462,7 +504,7 @@ class RVDetails(MDRecycleView):
                         rssi = s["values"]["rssi"]; rssi_str = None
                         snr = s["values"]["snr"]; snr_str = None
                         q = s["values"]["q"]; q_str = None
-                        if q != None: q_str = f"Link Quality [b]{q}%[/b]"
+                        if q != None: q_str = tr('Link Quality [b]{q}%[/b]', q=q)
                         if rssi != None:
                             rssi_str = f"RSSI [b]{rssi} dBm[/b]"
                             if q != None: rssi_str = ", "+rssi_str
@@ -580,7 +622,7 @@ class RVDetails(MDRecycleView):
                                 pct   = round(c["percent"], 1)
 
                                 set_icon = cicon if cicon else s["icon"]
-                                e_text = f"{label} level is [b]{lvl} {unit}[/b] ([b]{pct}%[/b])"
+                                e_text = tr('{label} level is [b]{lvl} {unit}[/b] ([b]{pct}%[/b])', label=label, lvl=lvl, unit=unit, pct=pct)
                                 extra_entries.append({"icon": set_icon, "text": e_text})
 
                     elif name == "Fuel":
@@ -596,7 +638,7 @@ class RVDetails(MDRecycleView):
                                 pct   = round(c["percent"], 1)
 
                                 set_icon = cicon if cicon else s["icon"]
-                                e_text = f"{label} level is [b]{lvl} {unit}[/b] ([b]{pct}%[/b])"
+                                e_text = tr('{label} level is [b]{lvl} {unit}[/b] ([b]{pct}%[/b])', label=label, lvl=lvl, unit=unit, pct=pct)
                                 extra_entries.append({"icon": set_icon, "text": e_text})
 
                     elif name == "Processor":
@@ -609,11 +651,11 @@ class RVDetails(MDRecycleView):
                                 clock = c["clock"]
                                 pct   = round(load*100.0, 1)
 
-                                avgs_str  = f", averages are [b]{round(avgs[0],2)}[/b], [b]{round(avgs[1],2)}[/b], [b]{round(avgs[2],2)}[/b]" if avgs != None and len(avgs) == 3 else ""
-                                clock_str = " at [b]"+RNS.prettyfrequency(clock)+"[/b]" if clock != None else ""
+                                avgs_str  = tr(', averages are [b]{value1}[/b], [b]{value2}[/b], [b]{value3}[/b]', value1=round(avgs[0], 2), value2=round(avgs[1], 2), value3=round(avgs[2], 2)) if avgs != None and len(avgs) == 3 else ""
+                                clock_str = tr(" at [b]")+RNS.prettyfrequency(clock)+"[/b]" if clock != None else ""
 
-                                e_text = f"Using [b]{pct}%[/b] of {label}{clock_str}{avgs_str}"
-                                e_text = f"{label} use is [b]{pct}%[/b]{clock_str}{avgs_str}"
+                                e_text = tr('Using [b]{pct}%[/b] of {label}{clock_str}{avgs_str}', pct=pct, label=label, clock_str=clock_str, avgs_str=avgs_str)
+                                e_text = tr('{label} use is [b]{pct}%[/b]{clock_str}{avgs_str}', label=label, pct=pct, clock_str=clock_str, avgs_str=avgs_str)
                                 extra_entries.append({"icon": s["icon"], "text": e_text})
 
                     elif name == "Non-Volatile Memory":
@@ -626,7 +668,7 @@ class RVDetails(MDRecycleView):
                                 free = RNS.prettysize(c["free"])
                                 pct  = round(c["percent"], 1)
 
-                                e_text = f"{label} use is [b]{use}[/b] ([b]{pct}%[/b]) of [b]{cap}[/b], with [b]{free}[/b] free"
+                                e_text = tr('{label} use is [b]{use}[/b] ([b]{pct}%[/b]) of [b]{cap}[/b], with [b]{free}[/b] free', label=label, use=use, pct=pct, cap=cap, free=free)
                                 extra_entries.append({"icon": s["icon"], "text": e_text})
 
                     elif name == "Random Access Memory":
@@ -639,7 +681,7 @@ class RVDetails(MDRecycleView):
                                 free = RNS.prettysize(c["free"])
                                 pct  = round(c["percent"], 1)
 
-                                e_text = f"{label} use is [b]{use}[/b] ([b]{pct}%[/b]) of [b]{cap}[/b], with [b]{free}[/b] free"
+                                e_text = tr('{label} use is [b]{use}[/b] ([b]{pct}%[/b]) of [b]{cap}[/b], with [b]{free}[/b] free', label=label, use=use, pct=pct, cap=cap, free=free)
                                 extra_entries.append({"icon": s["icon"], "text": e_text})
 
                     elif name == "Location":
@@ -650,7 +692,7 @@ class RVDetails(MDRecycleView):
                         heading = s["values"]["heading"]
                         accuracy = s["values"]["accuracy"]
                         updated = s["values"]["updated"]
-                        updated_str = f", logged [b]{RNS.prettytime(time.time()-updated, compact=True)} ago[/b]"
+                        updated_str = tr(', logged [b]{value1} ago[/b]', value1=RNS.prettytime(time.time() - updated, compact=True).replace(" and ", tr(" and ")))
 
                         coords = f"{lat}, {lon}"
                         fcoords = f"{round(lat,4)}, {round(lon,4)}"
@@ -659,15 +701,15 @@ class RVDetails(MDRecycleView):
                             alt_str = "0"
                         else:
                             alt_str = RNS.prettydistance(alt)
-                        formatted_values = f"Coordinates [b]{fcoords}[/b], altitude [b]{alt_str}[/b]"
+                        formatted_values = tr('Coordinates [b]{fcoords}[/b], altitude [b]{alt_str}[/b]', fcoords=fcoords, alt_str=alt_str)
                         if speed != None:
                             if speed > 0.1:
-                                speed_formatted_values = f"Speed [b]{speed} Km/h[/b], heading [b]{heading}°[/b]"
+                                speed_formatted_values = tr('Speed [b]{speed} Km/h[/b], heading [b]{heading}°[/b]', speed=speed, heading=heading)
                             else:
-                                speed_formatted_values = f"Object is [b]stationary[/b]"
+                                speed_formatted_values = tr('Object is [b]stationary[/b]')
                         else:
                             speed_formatted_values = None
-                        extra_formatted_values = f"Uncertainty [b]{accuracy} meters[/b]"+updated_str
+                        extra_formatted_values = tr('Uncertainty [b]{accuracy} meters[/b]', accuracy=accuracy)+updated_str
 
                         data = {"icon": s["icon"], "text": f"{formatted_values}"}
 
@@ -679,84 +721,84 @@ class RVDetails(MDRecycleView):
                             if "orthodromic" in s["distance"]:
                                 od = s["distance"]["orthodromic"]
                                 if od != None:
-                                    od_text = f"Geodesic distance [b]{RNS.prettydistance(od)}[/b]"
+                                    od_text = tr('Geodesic distance [b]{value1}[/b]', value1=RNS.prettydistance(od))
                                     extra_entries.append({"icon": "earth", "text": od_text})
                             
                             if "euclidian" in s["distance"]:
                                 ed = s["distance"]["euclidian"]
                                 if ed != None:
-                                    ed_text = f"Euclidian distance [b]{RNS.prettydistance(ed)}[/b]"
+                                    ed_text = tr('Euclidian distance [b]{value1}[/b]', value1=RNS.prettydistance(ed))
                                     extra_entries.append({"icon": "axis-arrow", "text": ed_text})
                             
                             if "vertical" in s["distance"]:
                                 vd = s["distance"]["vertical"]
                                 if vd != None:
                                     if vd < 0:
-                                        relstr = "lower"
+                                        relstr = tr('lower')
                                         vd = abs(vd)
                                     else:
-                                        relstr = "greater"
-                                    vd_text = f"Altitude is [b]{RNS.prettydistance(vd)}[/b] {relstr} than this device"
+                                        relstr = tr('greater')
+                                    vd_text = tr('Altitude is [b]{value1}[/b] {relstr} than this device', value1=RNS.prettydistance(vd), relstr=relstr)
                                     extra_entries.append({"icon": "altimeter", "text": vd_text})
 
                         if "angle_to_horizon" in s["values"]:
                             oath = s["values"]["angle_to_horizon"]
                             if oath != None:
                                 if self.delegate.viewing_self:
-                                    oath_text = f"Local horizon is at [b]{round(oath,3)}°[/b]"
+                                    oath_text = tr('Local horizon is at [b]{value1}°[/b]', value1=round(oath, 3))
                                 else:
-                                    oath_text = f"Object's horizon is at [b]{round(oath,3)}°[/b]"
+                                    oath_text = tr("Object's horizon is at [b]{value1}°[/b]", value1=round(oath, 3))
                                 extra_entries.append({"icon": "arrow-split-horizontal", "text": oath_text})
 
                         if self.delegate.viewing_self and "radio_horizon" in s["values"]:
                             orh = s["values"]["radio_horizon"]
                             if orh != None:
                                 range_text = RNS.prettydistance(orh)
-                                rh_formatted_text = f"Radio horizon of [b]{range_text}[/b]"
+                                rh_formatted_text = tr('Radio horizon of [b]{range_text}[/b]', range_text=range_text)
                                 extra_entries.append({"icon": "radio-tower", "text": rh_formatted_text})
 
                         if "azalt" in s and "local_angle_to_horizon" in s["azalt"]:
                             lath = s["azalt"]["local_angle_to_horizon"]
                             if lath != None:
-                                lath_text = f"Local horizon is at [b]{round(lath,3)}°[/b]"
+                                lath_text = tr('Local horizon is at [b]{value1}°[/b]', value1=round(lath, 3))
                                 extra_entries.append({"icon": "align-vertical-distribute", "text": lath_text})
 
                         if "azalt" in s:
                             azalt_formatted_text = ""
                             if "azimuth" in s["azalt"]:
                                 az = s["azalt"]["azimuth"]
-                                az_text = f"Azimuth [b]{round(az,3)}°[/b]"
+                                az_text = tr('Azimuth [b]{value1}°[/b]', value1=round(az, 3))
                                 azalt_formatted_text += az_text
                             
                             if "altitude" in s["azalt"]:
                                 al = s["azalt"]["altitude"]
-                                al_text = f"altitude [b]{round(al,3)}°[/b]"
+                                al_text = tr('altitude [b]{value1}°[/b]', value1=round(al, 3))
                                 if len(azalt_formatted_text) != 0: azalt_formatted_text += ", "
                                 azalt_formatted_text += al_text
 
                             extra_entries.append({"icon": "compass-rose", "text": azalt_formatted_text})
 
                             if "above_horizon" in s["azalt"]:
-                                astr = "above" if s["azalt"]["above_horizon"] == True else "below"
+                                astr = tr('above') if s["azalt"]["above_horizon"] == True else tr('below')
                                 dstr = str(round(s["azalt"]["altitude_delta"], 3))
-                                ah_text = f"Object is [b]{astr}[/b] the horizon (Δ = {dstr}°)"
+                                ah_text = tr('Object is [b]{astr}[/b] the horizon (Δ = {dstr}°)', astr=astr, dstr=dstr)
                                 extra_entries.append({"icon": "angle-acute", "text": ah_text})
 
                         if not self.delegate.viewing_self and "radio_horizon" in s["values"]:
                             orh = s["values"]["radio_horizon"]
                             if orh != None:
                                 range_text = RNS.prettydistance(orh)
-                                rh_formatted_text = f"Object's radio horizon is [b]{range_text}[/b]"
+                                rh_formatted_text = tr("Object's radio horizon is [b]{range_text}[/b]", range_text=range_text)
                                 extra_entries.append({"icon": "radio-tower", "text": rh_formatted_text})
 
                         if "radio_horizon" in s:
                             rh_icon = "circle-outline"
                             crange_text = RNS.prettydistance(s["radio_horizon"]["combined_range"])
                             if s["radio_horizon"]["within_range"]:
-                                rh_formatted_text = f"[b]Within[/b] shared radio horizon of [b]{crange_text}[/b]"
+                                rh_formatted_text = tr('[b]Within[/b] shared radio horizon of [b]{crange_text}[/b]', crange_text=crange_text)
                                 rh_icon = "set-none"
                             else:
-                                rh_formatted_text = f"[b]Outside[/b] shared radio horizon of [b]{crange_text}[/b]"
+                                rh_formatted_text = tr('[b]Outside[/b] shared radio horizon of [b]{crange_text}[/b]', crange_text=crange_text)
                             
                             extra_entries.append({"icon": rh_icon, "text": rh_formatted_text})
 
@@ -768,17 +810,21 @@ class RVDetails(MDRecycleView):
 
                         release_function = select
                     
+                    elif name == "Proximity":
+                        state = tr("Triggered") if s["values"]["triggered"] else tr("Not triggered")
+                        formatted_values = tr("Proximity [b]{state}[/b]", state=state)
+
                     elif name == "Reticulum Transport":
-                        te = "enabled" if s["values"]["transport_enabled"] else "disabled"
-                        formatted_values = f"Reticulum Transport [b]{te}[/b]"
+                        te = tr('enabled') if s["values"]["transport_enabled"] else tr('disabled')
+                        formatted_values = tr('Reticulum Transport [b]{te}[/b]', te=te)
                     
                     elif name == "LXMF Propagation":
                         tp = str(s["values"]["total_peers"])
                         ap = str(s["values"]["active_peers"])
-                        formatted_values = f"Peered with [b]{tp}[/b] LXMF Propagation Nodes, [b]{ap}[/b] available"
+                        formatted_values = tr('Peered with [b]{tp}[/b] LXMF Propagation Nodes, [b]{ap}[/b] available', tp=tp, ap=ap)
                     
                     else:
-                        formatted_values = f"{name}"
+                        formatted_values = f"{display_name}"
                         for vn in s["values"]:
                             v = s["values"][vn]
                             formatted_values += f" [b]{v} {vn}[/b]"
@@ -811,7 +857,7 @@ class RVDetails(MDRecycleView):
             try:
                 ratchet_id = RNS.Identity.current_ratchet_id(self.delegate.object_hash)
                 if ratchet_id:
-                    self.entries.append({"icon": "lock-check-outline", "text": f"Using ratchet [b]{RNS.prettyhexrep(ratchet_id)}[/b]", "on_release": pass_job})
+                    self.entries.append({"icon": "lock-check-outline", "text": tr('Using ratchet [b]{value1}[/b]', value1=RNS.prettyhexrep(ratchet_id)), "on_release": pass_job})
 
             except Exception as e:
                 RNS.trace_exception(e)
@@ -820,11 +866,11 @@ class RVDetails(MDRecycleView):
                 nh = RNS.Transport.hops_to(self.delegate.object_hash)
                 nhi = self.delegate.app.sideband.reticulum.get_next_hop_if_name(self.delegate.object_hash)
                 if nhi and nhi != "None":
-                    self.entries.append({"icon": "routes", "text": f"Current path on [b]{nhi}[/b]", "on_release": pass_job})
+                    self.entries.append({"icon": "routes", "text": tr('Current path on [b]{nhi}[/b]', nhi=nhi), "on_release": pass_job})
 
                 if nh != RNS.Transport.PATHFINDER_M:
-                    hs = "hop" if nh == 1 else "hops"
-                    self.entries.append({"icon": "atom-variant", "text": f"Network distance is [b]{nh} {hs}[/b]", "on_release": pass_job})
+                    hs = tr('hop') if nh == 1 else tr('hops')
+                    self.entries.append({"icon": "atom-variant", "text": tr('Network distance is [b]{nh} {hs}[/b]', nh=nh, hs=hs), "on_release": pass_job})
 
                 try:
                     ler = self.delegate.app.sideband.get_destination_establishment_rate(self.delegate.object_hash)
@@ -835,14 +881,14 @@ class RVDetails(MDRecycleView):
                         lers = RNS.prettyspeed(ler, "b")
                         mtus = RNS.prettysize(mtu)
                         edrs = f"{RNS.prettyspeed(edr)}" if edr != None else ""
-                        self.entries.append({"icon": "lock-check-outline", "text": f"Link established, LER is [b]{lers}[/b], MTU is [b]{mtus}[/b]", "on_release": pass_job})
-                        if edr: self.entries.append({"icon": "approximately-equal", "text": f"Expected data rate is [b]{edrs}[/b]", "on_release": pass_job})
+                        self.entries.append({"icon": "lock-check-outline", "text": tr('Link established, LER is [b]{lers}[/b], MTU is [b]{mtus}[/b]', lers=lers, mtus=mtus), "on_release": pass_job})
+                        if edr: self.entries.append({"icon": "approximately-equal", "text": tr('Expected data rate is [b]{edrs}[/b]', edrs=edrs), "on_release": pass_job})
                         if lmd != None:
                             if lmd in RNS.Link.MODE_DESCRIPTIONS: lmds = RNS.Link.MODE_DESCRIPTIONS[lmd]
-                            else: lmds = "unknown"
+                            else: lmds = tr('unknown')
                             if lmds == "AES_128_CBC": lmds = "X25519/AES128"
                             elif lmds == "AES_256_CBC": lmds = "X25519/AES256"
-                            self.entries.append({"icon": "link-lock", "text": f"Link mode is [b]{lmds}[/b]", "on_release": pass_job})
+                            self.entries.append({"icon": "link-lock", "text": tr('Link mode is [b]{lmds}[/b]', lmds=lmds), "on_release": pass_job})
                 except Exception as e:
                     RNS.trace_exception(e)
 
@@ -854,20 +900,20 @@ class RVDetails(MDRecycleView):
                 stamp_cost = self.delegate.app.sideband.message_router.get_outbound_stamp_cost(self.delegate.object_hash)
                 t_str = ""
                 if ticket_expires:
-                    t_str = ", but have ticket"
+                    t_str = tr(", but have ticket")
                 if stamp_cost:
-                    self.entries.append({"icon": "postage-stamp", "text": f"Required stamp cost [b]{stamp_cost}[/b]"+t_str, "on_release": pass_job})
+                    self.entries.append({"icon": "postage-stamp", "text": tr('Required stamp cost [b]{stamp_cost}[/b]', stamp_cost=stamp_cost)+t_str, "on_release": pass_job})
                 else:
-                    self.entries.append({"icon": "postage-stamp", "text": f"No required stamp cost", "on_release": pass_job})
+                    self.entries.append({"icon": "postage-stamp", "text": tr('No required stamp cost'), "on_release": pass_job})
                 if ticket_expires:
                     valid_for = ticket_expires - time.time()
-                    self.entries.append({"icon": "ticket-confirmation", "text": f"Delivery ticket valid for [b]{RNS.prettytime(valid_for)}[/b]", "on_release": pass_job})
+                    self.entries.append({"icon": "ticket-confirmation", "text": tr('Delivery ticket valid for [b]{value1}[/b]', value1=RNS.prettytime(valid_for).replace(" and ", tr(" and "))), "on_release": pass_job})
 
             except Exception as e:
                 RNS.trace_exception(e)
 
             if len(self.entries) == 0:
-                self.entries.append({"icon": "timeline-question-outline", "text": f"No telemetry available for this device"})
+                self.entries.append({"icon": "timeline-question-outline", "text": tr('No telemetry available for this device')})
 
             self.data = self.entries
 

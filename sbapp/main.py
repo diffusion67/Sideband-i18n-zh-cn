@@ -426,9 +426,9 @@ else:
     from kivymd.uix.dialog import MDDialog
     from kivymd.color_definitions import colors
     if RNS.vendor.platformutils.is_android():
-        from i18n import localize_kv
+        from i18n import localize_kv, translate as tr
     else:
-        from .i18n import localize_kv
+        from .i18n import localize_kv, translate as tr
 
     _builder_load_string = Builder.load_string
 
@@ -678,21 +678,21 @@ class SidebandApp(MDApp):
 
     def restart_service_action(self, sender):
         if hasattr(self, "service_restarting") and self.service_restarting == True:
-            toast(f"Service restart already in progress")
+            toast(tr('Service restart already in progress'))
         else:
-            toast(f"Restarting RNS service...")
+            toast(tr('Restarting RNS service...'))
             if hasattr(self, "connectivity_screen") and self.connectivity_screen != None:
                 self.connectivity_screen.ids.button_service_restart.disabled = True
             def job():
                 if self.restart_service():
                     def tj(delta_time):
-                        toast(f"Service restarted successfully!")
+                        toast(tr('Service restarted successfully!'))
                         if hasattr(self, "connectivity_screen") and self.connectivity_screen != None:
                             self.connectivity_screen.ids.button_service_restart.disabled = False
                     Clock.schedule_once(tj, 0.1)
                 else:
                     def tj(delta_time):
-                        toast(f"Service restart failed")
+                        toast(tr('Service restart failed'))
                         if hasattr(self, "connectivity_screen") and self.connectivity_screen != None:
                             self.connectivity_screen.ids.button_service_restart.disabled = False
                     Clock.schedule_once(tj, 0.1)
@@ -808,12 +808,12 @@ class SidebandApp(MDApp):
                     description = self.sideband.getpersistent("startup.errors.rnode")["description"]
                     self.sideband.setpersistent("startup.errors.rnode", None)
                     yes_button = MDRectangleFlatButton(
-                        text="OK",
+                        text=tr("OK"),
                         font_size=dp(18),
                     )
                     self.hw_error_dialog = MDDialog(
-                        title="Hardware Error",
-                        text="When starting a connected RNode, Reticulum reported the following error:\n\n[i]"+str(description)+"[/i]",
+                        title=tr("Hardware Error"),
+                        text=tr("When starting a connected RNode, Reticulum reported the following error:\n\n[i]")+str(description)+"[/i]",
                         buttons=[ yes_button ],
                         # elevation=0,
                     )
@@ -1066,10 +1066,10 @@ class SidebandApp(MDApp):
                 mActivity.startActivity(shareIntent)
 
             except Exception as e:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 dialog = MDDialog(
-                    title="Export Error",
-                    text="The resource could not be exported and shared:\n\n"+str(e),
+                    title=tr("Export Error"),
+                    text=tr("The resource could not be exported and shared:\n\n")+str(e),
                     buttons=[ ok_button ],
                 )
                 def dl_ok(s):
@@ -1256,10 +1256,10 @@ class SidebandApp(MDApp):
             if Environment.isExternalStorageManager():
                 storage_permissions_ok = True
             else:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 dialog = MDDialog(
-                    title="Storage Permission",
-                    text="Sideband needs external storage permission to read offline map files.\n\nOn this Android version, the Manage All Files permission is needed, since normal external storage permission is no longer supported.\n\nSideband will only ever read and write to files you select, and does not read any other data from your system.",
+                    title=tr("Storage Permission"),
+                    text=tr("Sideband needs external storage permission to read offline map files.\n\nOn this Android version, the Manage All Files permission is needed, since normal external storage permission is no longer supported.\n\nSideband will only ever read and write to files you select, and does not read any other data from your system."),
                     buttons=[ ok_button ],
                 )
                 def dl_ok(s):
@@ -1311,9 +1311,9 @@ class SidebandApp(MDApp):
     def start_bluetooth_scan(self):
         if not self.has_location_permissions():
             if not hasattr(self, "permission_dialog") or self.permission_dialog == None:
-                permission_dialog_text = "[b]Missing Permissions[/b]\n\nOn this version of Android, location permission is required to scan for Bluetooth devices. Yes, this is silly, but there's no way around it.\n\nIf you don't want Sideband to have location access, you can disable this permission after scanning and pairing your RNode, and everything will still work, as it is only the scanning process that requires this."
-                yes_button = MDRectangleFlatButton(text="Grant Permission",font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
-                no_button  = MDRectangleFlatButton(text="Cancel",font_size=dp(18))
+                permission_dialog_text = tr("[b]Missing Permissions[/b]\n\nOn this version of Android, location permission is required to scan for Bluetooth devices. Yes, this is silly, but there's no way around it.\n\nIf you don't want Sideband to have location access, you can disable this permission after scanning and pairing your RNode, and everything will still work, as it is only the scanning process that requires this.")
+                yes_button = MDRectangleFlatButton(text=tr("Grant Permission"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
+                no_button  = MDRectangleFlatButton(text=tr("Cancel"),font_size=dp(18))
                 self.permission_dialog = MDDialog(text=permission_dialog_text, buttons=[ no_button, yes_button ])
                 def dl_no(s): self.permission_dialog.dismiss()
                 def dl_yes(s):
@@ -1331,9 +1331,9 @@ class SidebandApp(MDApp):
             else:
                 if self.root.ids.screen_manager.has_screen("hardware_rnode_screen") and hasattr(self, "hardware_rnode_screen") and self.hardware_rnode_screen != None:
                     self.hardware_rnode_screen.ids.hardware_rnode_bt_scan_button.disabled = True
-                    self.hardware_rnode_screen.ids.hardware_rnode_bt_scan_button.text = "Scanning..."
+                    self.hardware_rnode_screen.ids.hardware_rnode_bt_scan_button.text = tr("Scanning...")
 
-                toast("Starting Bluetooth scan...")
+                toast(tr("Starting Bluetooth scan..."))
                 RNS.log("Starting bluetooth scan", RNS.LOG_DEBUG)
                 self.discovered_bt_devices = {}
                 if self.hardware_view: threading.Thread(target=self.hardware_view.hardware_rnode_scan_job, daemon=True).start()
@@ -1510,10 +1510,10 @@ class SidebandApp(MDApp):
             if RNS.vendor.platformutils.is_android() and not self.sideband.service_available():
                 if time.time() - self.service_last_available > SidebandApp.SERVICE_TIMEOUT:
                     if self.app_state == SidebandApp.ACTIVE:
-                        info_text = "The Reticulum and LXMF service seem to have disappeared, and Sideband is no longer connected. This should not happen, and probably indicates a bug in the background service. Please restart Sideband to regain connectivity."
-                        ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                        info_text = tr("The Reticulum and LXMF service seem to have disappeared, and Sideband is no longer connected. This should not happen, and probably indicates a bug in the background service. Please restart Sideband to regain connectivity.")
+                        ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                         dialog = MDDialog(
-                            title="Error",
+                            title=tr("Error"),
                             text=info_text,
                             buttons=[ ok_button ])
 
@@ -1538,16 +1538,16 @@ class SidebandApp(MDApp):
                         description = rnode_errors["description"]
                         self.sideband.setpersistent("runtime.errors.rnode", None)
                         yes_button = MDRectangleFlatButton(
-                            text="Ignore",
+                            text=tr("Ignore"),
                             font_size=dp(18),
                         )
                         restart_button = MDRectangleFlatButton(
-                            text="Restart RNS",
+                            text=tr("Restart RNS"),
                             font_size=dp(18),
                         )
                         self.hw_error_dialog = MDDialog(
-                            title="Hardware Error",
-                            text="While communicating with an RNode, Reticulum reported the following error:\n\n[i]"+str(description)+"[/i]",
+                            title=tr("Hardware Error"),
+                            text=tr("While communicating with an RNode, Reticulum reported the following error:\n\n[i]")+str(description)+"[/i]",
                             buttons=[ yes_button, restart_button ],
                             # elevation=0,
                         )
@@ -1574,11 +1574,11 @@ class SidebandApp(MDApp):
                 if incoming_call:
                     self.sideband.setstate("voice.incoming_call", None)
                     dn = multilingual_markup(escape_markup(str(incoming_call)).encode("utf-8")).decode("utf-8")
-                    toast(f"Call from {dn}", duration=4)
+                    toast(tr('Call from {dn}', dn=dn), duration=4)
 
                 if ended_call:
                     self.sideband.setstate("voice.ongoing_ended", False)
-                    toast("Call ended", duration=4)
+                    toast(tr("Call ended"), duration=4)
 
         if self.root.ids.screen_manager.current == "messages_screen":
             self.messages_view.update()
@@ -1644,9 +1644,9 @@ class SidebandApp(MDApp):
             else:
                 info_text = str(imr)
                 self.sideband.setstate("lxm_uri_ingest.result", False)
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 dialog = MDDialog(
-                    title="Message Scan",
+                    title=tr("Message Scan"),
                     text=info_text,
                     buttons=[ ok_button ],
                     # elevation=0,
@@ -1665,9 +1665,9 @@ class SidebandApp(MDApp):
             else:
                 info_text = str(hwe)
                 self.sideband.setstate("hardware_operation.error", False)
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 dialog = MDDialog(
-                    title="Error",
+                    title=tr("Error"),
                     text=info_text,
                     buttons=[ ok_button ],
                     # elevation=0,
@@ -1915,8 +1915,8 @@ class SidebandApp(MDApp):
                 sender.text = Clipboard.paste()
             else:
                 Clipboard.copy(sender.text)
-                action = "tap" if RNS.vendor.platformutils.is_android() else "click"
-                toast(f"Field copied, double-{action} any empty field to paste")
+                action = tr("tap") if RNS.vendor.platformutils.is_android() else tr("click")
+                toast(tr('Field copied, double-{action} any empty field to paste', action=action))
         except Exception as e:
             RNS.log("An error occurred while handling clipboard action: "+str(e), RNS.LOG_ERROR)
 
@@ -1974,11 +1974,11 @@ class SidebandApp(MDApp):
         self.sideband.lxmf_announce()
         if self.sideband.telephone: self.sideband.telephone.announce()
 
-        yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+        yes_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
 
         dialog = MDDialog(
-            title="Announce Sent",
-            text="Your LXMF address has been announced on all available interfaces",
+            title=tr("Announce Sent"),
+            text=tr("Your LXMF address has been announced on all available interfaces"),
             buttons=[ yes_button ],
             # elevation=0,
         )
@@ -2065,8 +2065,8 @@ class SidebandApp(MDApp):
                 self.conversation_action(item)
 
     def init_confirm_call_dialog(self, call_dialog_text):
-        yes_button = MDRectangleFlatButton(text="Call",font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
-        no_button = MDRectangleFlatButton(text="Cancel",font_size=dp(18))
+        yes_button = MDRectangleFlatButton(text=tr("Call"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
+        no_button = MDRectangleFlatButton(text=tr("Cancel"),font_size=dp(18))
         self.confirm_call_dialog = MDDialog(text=call_dialog_text, buttons=[ no_button, yes_button ])
         def dl_no(s): self.confirm_call_dialog.dismiss()
         def dl_yes(s):
@@ -2091,7 +2091,7 @@ class SidebandApp(MDApp):
                 def cb(dt): self.dial_action(identity_hash)
                 Clock.schedule_once(cb, 0.15)
             else:
-                call_dialog_text = f"[b]Initiate Voice Call?[/b]\n\nDestination Identity:\n{RNS.prettyhexrep(identity_hash)}"
+                call_dialog_text = tr('[b]Initiate Voice Call?[/b]\n\nDestination Identity:\n{value0}', value0=RNS.prettyhexrep(identity_hash))
                 if hasattr(self, "confirm_call_dialog"): self.confirm_call_dialog.text = call_dialog_text
                 else: self.init_confirm_call_dialog(call_dialog_text)
                 self.confirm_call_dialog.dest_identity_hash = identity_hash
@@ -2167,11 +2167,11 @@ class SidebandApp(MDApp):
         if self.root.ids.screen_manager.current == "messages_screen":
             if self.outbound_mode_propagation and self.sideband.message_router.get_outbound_propagation_node() == None:
                 self.messages_view.send_error_dialog = MDDialog(
-                    title="Error",
-                    text="Propagated delivery was requested, but no active LXMF propagation nodes were found. Cannot send message.\n\nWait for a Propagation Node to announce on the network, or manually specify one in the settings.",
+                    title=tr("Error"),
+                    text=tr("Propagated delivery was requested, but no active LXMF propagation nodes were found. Cannot send message.\n\nWait for a Propagation Node to announce on the network, or manually specify one in the settings."),
                     buttons=[
                         MDRectangleFlatButton(
-                            text="OK",
+                            text=tr("OK"),
                             font_size=dp(18),
                             on_release=self.messages_view.close_send_error_dialog
                         )
@@ -2234,11 +2234,11 @@ class SidebandApp(MDApp):
 
                         except Exception as e:
                             self.messages_view.send_error_dialog = MDDialog(
-                                title="Attachment Error",
-                                text="An error occurred while processing the attachment:\n\n[i]"+str(e)+"[/i]",
+                                title=tr("Attachment Error"),
+                                text=tr("An error occurred while processing the attachment:\n\n[i]")+str(e)+"[/i]",
                                 buttons=[
                                     MDRectangleFlatButton(
-                                        text="OK",
+                                        text=tr("OK"),
                                         font_size=dp(18),
                                         on_release=self.messages_view.close_send_error_dialog
                                     )
@@ -2261,11 +2261,11 @@ class SidebandApp(MDApp):
                         self.jobs(0)
                     else:
                         self.messages_view.send_error_dialog = MDDialog(
-                            title="Error",
-                            text="Could not send the command. Check that the syntax is correct, and that the command is supported.",
+                            title=tr("Error"),
+                            text=tr("Could not send the command. Check that the syntax is correct, and that the command is supported."),
                             buttons=[
                                 MDRectangleFlatButton(
-                                    text="OK",
+                                    text=tr("OK"),
                                     font_size=dp(18),
                                     on_release=self.messages_view.close_send_error_dialog
                                 )
@@ -2286,11 +2286,11 @@ class SidebandApp(MDApp):
 
                 else:
                     self.messages_view.send_error_dialog = MDDialog(
-                        title="Error",
-                        text="Could not send the message",
+                        title=tr("Error"),
+                        text=tr("Could not send the message"),
                         buttons=[
                             MDRectangleFlatButton(
-                                text="OK",
+                                text=tr("OK"),
                                 font_size=dp(18),
                                 on_release=self.messages_view.close_send_error_dialog
                             )
@@ -2347,17 +2347,17 @@ class SidebandApp(MDApp):
             if self.outbound_mode_command:
                 self.outbound_mode_reset()
             
-            toast("Attached \""+str(fbn)+"\"")
+            toast(tr("Attached \"")+str(fbn)+"\"")
 
         except Exception as e:
             RNS.log(f"Error while attaching \"{fbn}\": "+str(e), RNS.LOG_ERROR)
             if RNS.vendor.platformutils.get_platform() == "android":
-                toast("Could not attach \""+str(fbn)+"\"")
+                toast(tr("Could not attach \"")+str(fbn)+"\"")
             else:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 ate_dialog = MDDialog(
-                    title="Attachment Error",
-                    text="The specified file could not be attached:\n\n[i]"+str(e)+"[/i]",
+                    title=tr("Attachment Error"),
+                    text=tr("The specified file could not be attached:\n\n[i]")+str(e)+"[/i]",
                     buttons=[ ok_button ],
                 )
                 ok_button.bind(on_release=ate_dialog.dismiss)
@@ -2402,12 +2402,12 @@ class SidebandApp(MDApp):
 
             except Exception as e:
                 if RNS.vendor.platformutils.get_platform() == "android":
-                    toast("Error reading directory, check permissions!")
+                    toast(tr("Error reading directory, check permissions!"))
                 else:
-                    ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                    ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                     ate_dialog = MDDialog(
-                        title="Attachment Error",
-                        text="Error reading directory, check permissions!",
+                        title=tr("Attachment Error"),
+                        text=tr("Error reading directory, check permissions!"),
                         buttons=[ ok_button ],
                     )
                     ok_button.bind(on_release=ate_dialog.dismiss)
@@ -2415,12 +2415,12 @@ class SidebandApp(MDApp):
         
         else:
             if RNS.vendor.platformutils.get_platform() == "android":
-                toast("No file access, check permissions!")
+                toast(tr("No file access, check permissions!"))
             else:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 ate_dialog = MDDialog(
-                    title="Attachment Error",
-                    text="No file access, check permissions!",
+                    title=tr("Attachment Error"),
+                    text=tr("No file access, check permissions!"),
                     buttons=[ ok_button ],
                 )
                 ok_button.bind(on_release=ate_dialog.dismiss)
@@ -2431,11 +2431,11 @@ class SidebandApp(MDApp):
             def cb(sender):
                 self.compat_error_dialog.dismiss()
             self.compat_error_dialog = MDDialog(
-                title="Could not load Codec2",
-                text="The Codec2 library could not be loaded. This likely means that you do not have the [b]codec2[/b] package or shared library installed on your system.\n\nThis library is normally installed automatically when Sideband is installed, but on some systems, this is not possible.\n\nTry installing it with a command such as [b]pamac install codec2[/b] or [b]apt install codec2[/b], or by compiling it from source for this system.",
+                title=tr("Could not load Codec2"),
+                text=tr("The Codec2 library could not be loaded. This likely means that you do not have the [b]codec2[/b] package or shared library installed on your system.\n\nThis library is normally installed automatically when Sideband is installed, but on some systems, this is not possible.\n\nTry installing it with a command such as [b]pamac install codec2[/b] or [b]apt install codec2[/b], or by compiling it from source for this system."),
                 buttons=[
                     MDRectangleFlatButton(
-                        text="OK",
+                        text=tr("OK"),
                         font_size=dp(18),
                         on_release=cb
                     )
@@ -2620,7 +2620,7 @@ class SidebandApp(MDApp):
                 el.theme_text_color="Custom"
                 el.text_color=mdc("Red","400")
                 el.icon = "stop-circle"
-                self.rec_dialog.rec_item.text = "[size="+str(ss)+"]Stop Recording[/size]"
+                self.rec_dialog.rec_item.text = "[size="+str(ss)+tr("]Stop Recording[/size]")
                 self.rec_dialog.recorder.start()
 
             else:
@@ -2628,7 +2628,7 @@ class SidebandApp(MDApp):
                 self.rec_dialog.recorder.stop()
                 self.rec_dialog.recorder = None
                 RNS.log("Recording stopped", RNS.LOG_DEBUG) # TODO: Remove
-                self.rec_dialog.rec_item.text = "[size="+str(ss)+"]Start Recording[/size]"
+                self.rec_dialog.rec_item.text = "[size="+str(ss)+tr("]Start Recording[/size]")
                 el = self.rec_dialog.rec_item.children[0].children[0]
                 el.icon = "record"
                 el.text_color = self.theme_cls._get_text_color()
@@ -2646,14 +2646,14 @@ class SidebandApp(MDApp):
                 RNS.log("Playing recording...", RNS.LOG_DEBUG)
                 self.rec_dialog.playing = True
                 self.rec_dialog.play_item.children[0].children[0].icon = "stop"
-                self.rec_dialog.play_item.text = "[size="+str(ss)+"]Stop[/size]"
+                self.rec_dialog.play_item.text = "[size="+str(ss)+tr("]Stop[/size]")
                 self.recording_player.set_source(self.rec_dialog.file_path)
                 self.recording_player.play()
             else:
                 RNS.log("Stopping playback...", RNS.LOG_DEBUG)
                 self.rec_dialog.playing = False
                 self.rec_dialog.play_item.children[0].children[0].icon = "play"
-                self.rec_dialog.play_item.text = "[size="+str(ss)+"]Play[/size]"
+                self.rec_dialog.play_item.text = "[size="+str(ss)+tr("]Play[/size]")
                 self.recording_player.stop()
 
         self.msg_rec_a_play = a_play
@@ -2662,7 +2662,7 @@ class SidebandApp(MDApp):
             RNS.log("Playback finished", RNS.LOG_DEBUG)
             self.rec_dialog.playing = False
             self.rec_dialog.play_item.children[0].children[0].icon = "play"
-            self.rec_dialog.play_item.text = "[size="+str(ss)+"]Play[/size]"
+            self.rec_dialog.play_item.text = "[size="+str(ss)+tr("]Play[/size]")
             
         self.recording_player.finished_callback = a_finished
             
@@ -2675,19 +2675,19 @@ class SidebandApp(MDApp):
                 self.message_process_audio(self.rec_dialog.file_path)
                 if self.outbound_mode_command: self.outbound_mode_reset()
                 self.update_message_widgets()
-                toast("Added recorded audio to message")
+                toast(tr("Added recorded audio to message"))
             
             except Exception as e:
                 RNS.trace_exception(e)
 
         self.msg_rec_a_save = a_save
 
-        cancel_button = MDRectangleFlatButton(text="Cancel", font_size=dp(18))
-        rec_item = DialogItem(IconLeftWidget(icon="record", on_release=a_rec_action), text="[size="+str(ss)+"]Start Recording[/size]", on_release=a_rec_action)
-        play_item = DialogItem(IconLeftWidget(icon="play", on_release=a_play), text="[size="+str(ss)+"]Play[/size]", on_release=a_play, disabled=True)
-        save_item = DialogItem(IconLeftWidget(icon="content-save-move-outline", on_release=a_save), text="[size="+str(ss)+"]Save to message[/size]", on_release=a_save, disabled=True)
+        cancel_button = MDRectangleFlatButton(text=tr("Cancel"), font_size=dp(18))
+        rec_item = DialogItem(IconLeftWidget(icon="record", on_release=a_rec_action), text="[size="+str(ss)+tr("]Start Recording[/size]"), on_release=a_rec_action)
+        play_item = DialogItem(IconLeftWidget(icon="play", on_release=a_play), text="[size="+str(ss)+tr("]Play[/size]"), on_release=a_play, disabled=True)
+        save_item = DialogItem(IconLeftWidget(icon="content-save-move-outline", on_release=a_save), text="[size="+str(ss)+tr("]Save to message[/size]"), on_release=a_save, disabled=True)
         self.rec_dialog = MDDialog(
-            title="Record Audio",
+            title=tr("Record Audio"),
             type="simple",
             items=[
                 rec_item,
@@ -2714,7 +2714,7 @@ class SidebandApp(MDApp):
             self.rec_dialog.play_item.disabled = True
             self.rec_dialog.save_item.disabled = True
             self.rec_dialog.recording = False
-            self.rec_dialog.rec_item.text = "[size="+str(ss)+"]Start Recording[/size]"
+            self.rec_dialog.rec_item.text = "[size="+str(ss)+tr("]Start Recording[/size]")
             self.rec_dialog.rec_item.children[0].children[0].icon = "record"
 
         self.rec_dialog.open()
@@ -2761,23 +2761,23 @@ class SidebandApp(MDApp):
 
             if self.attach_dialog == None:
                 ss = int(dp(18))
-                cancel_button = MDRectangleFlatButton(text="Cancel", font_size=dp(18))
+                cancel_button = MDRectangleFlatButton(text=tr("Cancel"), font_size=dp(18))
                 ad_items = [
-                        DialogItem(IconLeftWidget(icon="message-image-outline", on_release=a_img_lb), text="[size="+str(ss)+"]Low-bandwidth Image[/size]", on_release=a_img_lb),
-                        DialogItem(IconLeftWidget(icon="file-image", on_release=a_img_def), text="[size="+str(ss)+"]Medium Image[/size]", on_release=a_img_def),
-                        DialogItem(IconLeftWidget(icon="image-outline", on_release=a_img_hq), text="[size="+str(ss)+"]High-res Image[/size]", on_release=a_img_hq),
-                        DialogItem(IconLeftWidget(icon="account-voice", on_release=a_audio_lb), text="[size="+str(ss)+"]Low-bandwidth Voice[/size]", on_release=a_audio_lb),
-                        DialogItem(IconLeftWidget(icon="microphone-message", on_release=a_audio_hq), text="[size="+str(ss)+"]High-quality Voice[/size]", on_release=a_audio_hq),
-                        DialogItem(IconLeftWidget(icon="file-outline", on_release=a_file), text="[size="+str(ss)+"]File Attachment[/size]", on_release=a_file)]
+                        DialogItem(IconLeftWidget(icon="message-image-outline", on_release=a_img_lb), text="[size="+str(ss)+tr("]Low-bandwidth Image[/size]"), on_release=a_img_lb),
+                        DialogItem(IconLeftWidget(icon="file-image", on_release=a_img_def), text="[size="+str(ss)+tr("]Medium Image[/size]"), on_release=a_img_def),
+                        DialogItem(IconLeftWidget(icon="image-outline", on_release=a_img_hq), text="[size="+str(ss)+tr("]High-res Image[/size]"), on_release=a_img_hq),
+                        DialogItem(IconLeftWidget(icon="account-voice", on_release=a_audio_lb), text="[size="+str(ss)+tr("]Low-bandwidth Voice[/size]"), on_release=a_audio_lb),
+                        DialogItem(IconLeftWidget(icon="microphone-message", on_release=a_audio_hq), text="[size="+str(ss)+tr("]High-quality Voice[/size]"), on_release=a_audio_hq),
+                        DialogItem(IconLeftWidget(icon="file-outline", on_release=a_file), text="[size="+str(ss)+tr("]File Attachment[/size]"), on_release=a_file)]
 
                 if RNS.vendor.platformutils.is_android() and android_api_version < 29:
                     ad_items.pop(3)
                     ad_items.pop(3)
 
                 self.attach_dialog = MDDialog(
-                    title="Add Attachment",
+                    title=tr("Add Attachment"),
                     type="simple",
-                    text="Select the type of attachment you want to send with this message\n",
+                    text=tr("Select the type of attachment you want to send with this message\n"),
                     items=ad_items,
                     buttons=[ cancel_button ],
                     width_offset=dp(32),
@@ -2792,17 +2792,17 @@ class SidebandApp(MDApp):
             self.attach_type = None
             self.update_message_widgets()
 
-            toast("Attachment removed")
+            toast(tr("Attachment removed"))
 
     def shared_attachment_action(self, attachment_data):
         if not self.root.ids.screen_manager.current == "messages_screen":
             if RNS.vendor.platformutils.is_android():
-                toast("Please select a conversation first")
+                toast(tr("Please select a conversation first"))
             else:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 ate_dialog = MDDialog(
-                    title="No active conversation",
-                    text="To drop files as attachments, please open a conversation first",
+                    title=tr("No active conversation"),
+                    text=tr("To drop files as attachments, please open a conversation first"),
                     buttons=[ ok_button ],
                 )
                 ok_button.bind(on_release=ate_dialog.dismiss)
@@ -2829,17 +2829,17 @@ class SidebandApp(MDApp):
 
             if self.shared_attach_dialog == None:
                 ss = int(dp(18))
-                cancel_button = MDRectangleFlatButton(text="Cancel", font_size=dp(18))
+                cancel_button = MDRectangleFlatButton(text=tr("Cancel"), font_size=dp(18))
                 ad_items = [
-                        DialogItem(IconLeftWidget(icon="message-image-outline", on_release=a_img_lb), text="[size="+str(ss)+"]Low-bandwidth Image[/size]", on_release=a_img_lb),
-                        DialogItem(IconLeftWidget(icon="file-image", on_release=a_img_def), text="[size="+str(ss)+"]Medium Image[/size]", on_release=a_img_def),
-                        DialogItem(IconLeftWidget(icon="image-outline", on_release=a_img_hq), text="[size="+str(ss)+"]High-res Image[/size]", on_release=a_img_hq),
-                        DialogItem(IconLeftWidget(icon="file-outline", on_release=a_file), text="[size="+str(ss)+"]File Attachment[/size]", on_release=a_file)]
+                        DialogItem(IconLeftWidget(icon="message-image-outline", on_release=a_img_lb), text="[size="+str(ss)+tr("]Low-bandwidth Image[/size]"), on_release=a_img_lb),
+                        DialogItem(IconLeftWidget(icon="file-image", on_release=a_img_def), text="[size="+str(ss)+tr("]Medium Image[/size]"), on_release=a_img_def),
+                        DialogItem(IconLeftWidget(icon="image-outline", on_release=a_img_hq), text="[size="+str(ss)+tr("]High-res Image[/size]"), on_release=a_img_hq),
+                        DialogItem(IconLeftWidget(icon="file-outline", on_release=a_file), text="[size="+str(ss)+tr("]File Attachment[/size]"), on_release=a_file)]
                 
                 self.shared_attach_dialog = MDDialog(
-                    title="Add Attachment",
+                    title=tr("Add Attachment"),
                     type="simple",
-                    text="Select how you want to attach this data to the next message sent\n",
+                    text=tr("Select how you want to attach this data to the next message sent\n"),
                     items=ad_items,
                     buttons=[ cancel_button ],
                     width_offset=dp(32),
@@ -2865,27 +2865,27 @@ class SidebandApp(MDApp):
 
         if self.outbound_mode_paper:
             mode_item.icon = "qrcode"
-            self.messages_view.ids.message_text.hint_text = "Paper message"
+            self.messages_view.ids.message_text.hint_text = tr("Paper message")
         else:
             if self.outbound_mode_command:
                 mode_item.icon = "console"
-                self.messages_view.ids.message_text.hint_text = "Send command or request"
+                self.messages_view.ids.message_text.hint_text = tr("Send command or request")
             else:
                 if not self.outbound_mode_propagation:
                     mode_item.icon = "lan-connect"
-                    self.messages_view.ids.message_text.hint_text = "Message for direct delivery"
+                    self.messages_view.ids.message_text.hint_text = tr("Message for direct delivery")
                 else:
                     mode_item.icon = "upload-network"
-                    self.messages_view.ids.message_text.hint_text = "Message for propagation"
+                    self.messages_view.ids.message_text.hint_text = tr("Message for propagation")
             # self.root.ids.message_text.hint_text = "Write message for delivery via propagation nodes"
     
     def key_query_action(self, sender):
         context_dest = self.messages_view.ids.messages_scrollview.active_conversation
         if self.sideband.request_key(context_dest):
-            keys_str = "Public key information for "+RNS.prettyhexrep(context_dest)+" was requested from the network. Waiting for request to be answered."
+            keys_str = tr('Public key information for {address} was requested from the network. Waiting for request to be answered.', address=RNS.prettyhexrep(context_dest))
             self.messages_view.ids.nokeys_text.text = keys_str
         else:
-            keys_str = "Could not send request. Check your connectivity and addresses."
+            keys_str = tr("Could not send request. Check your connectivity and addresses.")
             self.messages_view.ids.nokeys_text.text = keys_str
 
     def message_area_detect(self):
@@ -2897,7 +2897,7 @@ class SidebandApp(MDApp):
         else:
             self.messages_view.ids.messages_scrollview.dest_known = False
             if self.messages_view.ids.nokeys_text.text == "":
-                keys_str = "The cryptographic keys for the destination address are unknown at this time. You can wait for an announce to arrive, or query the network for the necessary keys."
+                keys_str = tr("The cryptographic keys for the destination address are unknown at this time. You can wait for an announce to arrive, or query the network for the necessary keys.")
                 self.messages_view.ids.nokeys_text.text = keys_str
             self.widget_hide(self.messages_view.ids.message_input_part, True)
             self.widget_hide(self.messages_view.ids.message_ptt, True)
@@ -2965,22 +2965,22 @@ class SidebandApp(MDApp):
 
             else:
                 if self.sideband.reticulum.is_connected_to_shared_instance:
-                    connectivity_status = "Sideband is connected via a shared Reticulum instance running on this system. Use the [b]rnstatus[/b] utility to obtain full connectivity info."
+                    connectivity_status = tr("Sideband is connected via a shared Reticulum instance running on this system. Use the [b]rnstatus[/b] utility to obtain full connectivity info.")
                 else:
-                    connectivity_status = "Sideband is currently running a standalone or master Reticulum instance on this system. Use the [b]rnstatus[/b] utility to obtain full connectivity info."
+                    connectivity_status = tr("Sideband is currently running a standalone or master Reticulum instance on this system. Use the [b]rnstatus[/b] utility to obtain full connectivity info.")
 
             return connectivity_status
         except Exception as e:
             RNS.log("An error occurred while retrieving connectivity status: "+str(e), RNS.LOG_ERROR)
-            return "Could not retrieve connectivity status"
+            return tr("Could not retrieve connectivity status")
     
     def connectivity_status(self, sender):
         if RNS.vendor.platformutils.is_android():
             hs = dp(22)
-            yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
-            full_button = MDRectangleFlatButton(text="Full RNS Status",font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
+            yes_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
+            full_button = MDRectangleFlatButton(text=tr("Full RNS Status"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
             dialog = MDDialog(
-                title="Connectivity Status",
+                title=tr("Connectivity Status"),
                 text=str(self.get_connectivity_text()),
                 buttons=[full_button, yes_button])
             def cs_updater(dt): dialog.text = str(self.get_connectivity_text())
@@ -3017,12 +3017,12 @@ class SidebandApp(MDApp):
 
     def open_ingest_lxm_dialog(self, sender=None):
         try:
-            cancel_button = MDRectangleFlatButton(text="Cancel",font_size=dp(18))
-            ingest_button = MDRectangleFlatButton(text="Read LXM",font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
+            cancel_button = MDRectangleFlatButton(text=tr("Cancel"),font_size=dp(18))
+            ingest_button = MDRectangleFlatButton(text=tr("Read LXM"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
             
             dialog = MDDialog(
-                title="Ingest Paper Message",
-                text="You can read LXMF paper messages into this program by scanning a QR-code containing the message with your device camera or QR-scanner app, and then opening the resulting link in Sideband.\n\nAlternatively, you can copy an [b]lxm://[/b] link from any source to your clipboard, and ingest it using the [i]Read LXM[/i] button below.",
+                title=tr("Ingest Paper Message"),
+                text=tr("You can read LXMF paper messages into this program by scanning a QR-code containing the message with your device camera or QR-scanner app, and then opening the resulting link in Sideband.\n\nAlternatively, you can copy an [b]lxm://[/b] link from any source to your clipboard, and ingest it using the [i]Read LXM[/i] button below."),
                 buttons=[ ingest_button, cancel_button ],
             )
             def dl_yes(s):
@@ -3035,7 +3035,7 @@ class SidebandApp(MDApp):
                     dialog.dismiss()
 
                 except Exception as e:
-                    response = "Error ingesting message from URI: "+str(e)
+                    response = tr("Error ingesting message from URI: ")+str(e)
                     RNS.log(response, RNS.LOG_ERROR)
                     self.sideband.setstate("lxm_uri_ingest.result", response)
                     dialog.dismiss()
@@ -3063,11 +3063,11 @@ class SidebandApp(MDApp):
 
     def lxmf_sync_request(self, sender):
         if self.sideband.message_router.get_outbound_propagation_node() == None:
-            yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+            yes_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
 
             dialog = MDDialog(
-                title="Can't Sync",
-                text="No active LXMF propagation nodes were found. Cannot fetch messages. Wait for a Propagation Node to announce on the network, or manually specify one in the settings.",
+                title=tr("Can't Sync"),
+                text=tr("No active LXMF propagation nodes were found. Cannot fetch messages. Wait for a Propagation Node to announce on the network, or manually specify one in the settings."),
                 buttons=[ yes_button ],
                 # elevation=0,
             )
@@ -3082,10 +3082,10 @@ class SidebandApp(MDApp):
             else:
                 sl = None
 
-            sync_title = "LXMF Sync"
+            sync_title = tr("LXMF Sync")
             if not hasattr(self, "message_sync_dialog") or self.message_sync_dialog == None:
-                close_button = MDRectangleFlatButton(text="Close",font_size=dp(18))
-                stop_button = MDRectangleFlatButton(text="Stop",font_size=dp(18), theme_text_color="Custom", line_color=self.color_reject, text_color=self.color_reject)
+                close_button = MDRectangleFlatButton(text=tr("Close"),font_size=dp(18))
+                stop_button = MDRectangleFlatButton(text=tr("Stop"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_reject, text_color=self.color_reject)
 
                 dialog_content = MsgSync()
                 dialog = MDDialog(
@@ -3125,7 +3125,7 @@ class SidebandApp(MDApp):
 
             self.sideband.setstate("app.flags.lxmf_sync_dialog_open", True)
             self.message_sync_dialog.title = sync_title
-            self.message_sync_dialog.d_content.ids.node_info.text = f"Via {RNS.prettyhexrep(self.sideband.message_router.get_outbound_propagation_node())}\n"
+            self.message_sync_dialog.d_content.ids.node_info.text = tr('Via {value0}\n', value0=RNS.prettyhexrep(self.sideband.message_router.get_outbound_propagation_node()))
             self.message_sync_dialog.d_content.ids.sync_status.text = self.sideband.get_sync_status()
             self.message_sync_dialog.d_content.ids.sync_progress.value = dsp
             self.message_sync_dialog.d_content.ids.sync_progress.start()
@@ -3145,12 +3145,12 @@ class SidebandApp(MDApp):
 
     def new_conversation_request(self, sender=None):
         try:
-            cancel_button = MDRectangleFlatButton(text="Cancel",font_size=dp(18))
-            create_button = MDRectangleFlatButton(text="Create",font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
+            cancel_button = MDRectangleFlatButton(text=tr("Cancel"),font_size=dp(18))
+            create_button = MDRectangleFlatButton(text=tr("Create"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
             
             dialog_content = NewConv()
             dialog = MDDialog(
-                title="New Conversation",
+                title=tr("New Conversation"),
                 type="custom",
                 content_cls=dialog_content,
                 buttons=[ create_button, cancel_button ],
@@ -3177,7 +3177,7 @@ class SidebandApp(MDApp):
                     if self.conversations_view != None:
                         self.conversations_view.update()
                 else:
-                    dialog.d_content.ids["n_address_field"].helper_text = "Invalid address, check your input"
+                    dialog.d_content.ids["n_address_field"].helper_text = tr("Invalid address, check your input")
                     dialog.d_content.ids["n_address_field"].helper_text_mode = "persistent"
                     dialog.d_content.ids["n_address_field"].error = True
                     # dialog.d_content.ids["n_error_field"].text = "Could not create conversation. Check your input."
@@ -3226,12 +3226,12 @@ class SidebandApp(MDApp):
             self.information_screen.ids.information_scrollview.effect_cls = ScrollEffect
             self.information_screen.ids.information_logo.icon = os.path.join(self.sideband.asset_dir, "rns_256.png")
 
-            str_comps  =   " - [b]Reticulum[/b] (Reticulum License)\n - [b]LXMF[/b] (Reticulum License)\n - [b]LXST[/b] (Reticulum License)"
-            str_comps += "\n - [b]Kivy[/b] (MIT License)\n - [b]KivyMD[/b] (MIT License)"
-            str_comps += "\n - [b]Codec2[/b] (LGPL License)\n - [b]PyCodec2[/b] (BSD-3 License)\n - [b]Able[/b] (MIT License)"
-            str_comps += "\n - [b]GeoidHeight[/b] (LGPL License)\n - [b]Paho MQTT[/b] (EPL2 License)\n - [b]Python[/b] (PSF License)"
-            str_comps += "\n\nGo to [u][ref=link]https://unsigned.io/donate[/ref][/u] to support the project.\n\nThe Sideband app is Copyright © 2026 Mark Qvist / unsigned.io\n\nPermission is granted to freely share and distribute binary copies of "+self.root.ids.app_version_info.text+", so long as no payment or compensation is charged for said distribution or sharing.\n\nIf you were charged or paid anything for this copy of Sideband, please report it to [b]license@unsigned.io[/b].\n\nTHIS IS EXPERIMENTAL SOFTWARE - SIDEBAND COMES WITH ABSOLUTELY NO WARRANTY - USE AT YOUR OWN RISK AND RESPONSIBILITY"
-            info = "This is "+self.root.ids.app_version_info.text+"\nRunning on RNS v"+RNS.__version__+", LXMF v"+LXMF.__version__+" and LXST v"+lxst_version+".\n\nHumbly build using the following open components:\n\n"+str_comps
+            str_comps  =   tr(" - [b]Reticulum[/b] (Reticulum License)\n - [b]LXMF[/b] (Reticulum License)\n - [b]LXST[/b] (Reticulum License)")
+            str_comps += tr("\n - [b]Kivy[/b] (MIT License)\n - [b]KivyMD[/b] (MIT License)")
+            str_comps += tr("\n - [b]Codec2[/b] (LGPL License)\n - [b]PyCodec2[/b] (BSD-3 License)\n - [b]Able[/b] (MIT License)")
+            str_comps += tr("\n - [b]GeoidHeight[/b] (LGPL License)\n - [b]Paho MQTT[/b] (EPL2 License)\n - [b]Python[/b] (PSF License)")
+            str_comps += tr("\n\nGo to [u][ref=link]https://unsigned.io/donate[/ref][/u] to support the project.\n\nThe Sideband app is Copyright © 2026 Mark Qvist / unsigned.io\n\nPermission is granted to freely share and distribute binary copies of ")+self.root.ids.app_version_info.text+tr(", so long as no payment or compensation is charged for said distribution or sharing.\n\nIf you were charged or paid anything for this copy of Sideband, please report it to [b]license@unsigned.io[/b].\n\nTHIS IS EXPERIMENTAL SOFTWARE - SIDEBAND COMES WITH ABSOLUTELY NO WARRANTY - USE AT YOUR OWN RISK AND RESPONSIBILITY")
+            info = tr("This is ")+self.root.ids.app_version_info.text+tr("\nRunning on RNS v")+RNS.__version__+", LXMF v"+LXMF.__version__+tr(" and LXST v")+lxst_version+tr(".\n\nHumbly build using the following open components:\n\n")+str_comps
             self.information_screen.ids.information_info.text = info
             self.information_screen.ids.information_info.bind(on_ref_press=link_exec)
 
@@ -3275,12 +3275,12 @@ class SidebandApp(MDApp):
     def configure_ui_scaling_action(self, sender=None):
         global app_ui_scaling_path
         try:
-            cancel_button = MDRectangleFlatButton(text="Cancel",font_size=dp(18))
-            set_button = MDRectangleFlatButton(text="Set",font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
+            cancel_button = MDRectangleFlatButton(text=tr("Cancel"),font_size=dp(18))
+            set_button = MDRectangleFlatButton(text=tr("Set"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_accept, text_color=self.color_accept)
             
             dialog_content = UIScaling()
             dialog = MDDialog(
-                title="UI Scaling",
+                title=tr("UI Scaling"),
                 type="custom",
                 content_cls=dialog_content,
                 buttons=[ set_button, cancel_button ],
@@ -3317,7 +3317,7 @@ class SidebandApp(MDApp):
                             RNS.log(f"Error while saving scaling factor {new_sf} to {app_ui_scaling_path}: {e}", RNS.LOG_ERROR)
 
                 else:
-                    dialog.d_content.ids["scaling_factor"].helper_text = "Invalid scale factor, check your input"
+                    dialog.d_content.ids["scaling_factor"].helper_text = tr("Invalid scale factor, check your input")
                     dialog.d_content.ids["scaling_factor"].helper_text_mode = "persistent"
                     dialog.d_content.ids["scaling_factor"].error = True
 
@@ -3387,14 +3387,14 @@ class SidebandApp(MDApp):
 
             self.settings_screen.ids.settings_scrollview.effect_cls = ScrollEffect
 
-            self.settings_screen.ids.settings_info_lang.text = "\nIf you write messages in another script than Latin, Greek or Cyrillic, you can configure the text input language for messages and other fields below.\n"
+            self.settings_screen.ids.settings_info_lang.text = tr("\nIf you write messages in another script than Latin, Greek or Cyrillic, you can configure the text input language for messages and other fields below.\n")
 
-            info1_text  = "\nYou can set your [b]Display Name[/b] to a custom value, or leave it as the default unspecified value. "
-            info1_text += "This name will be included in any announces you send, and will be visible to others on the network. "
-            info1_text += "\n\nYou can manually specify which [b]Propagation Node[/b] to use, but if none is specified, Sideband will "
-            info1_text += "automatically select one nearby."
+            info1_text  = tr("\nYou can set your [b]Display Name[/b] to a custom value, or leave it as the default unspecified value. ")
+            info1_text += tr("This name will be included in any announces you send, and will be visible to others on the network. ")
+            info1_text += tr("\n\nYou can manually specify which [b]Propagation Node[/b] to use, but if none is specified, Sideband will ")
+            info1_text += tr("automatically select one nearby.")
             if RNS.vendor.platformutils.is_android():
-                info1_text += "\n\nDouble-tap any field to copy its value, and double-tap an empty field to paste into it."
+                info1_text += tr("\n\nDouble-tap any field to copy its value, and double-tap an empty field to paste into it.")
 
             self.settings_screen.ids.settings_info1.text = info1_text
 
@@ -3625,7 +3625,7 @@ class SidebandApp(MDApp):
 
                 interval_text = RNS.prettytime(interval)
                 pre = self.settings_screen.ids.settings_lxmf_sync_periodic.text
-                self.settings_screen.ids.settings_lxmf_sync_periodic.text = "Auto sync every "+interval_text
+                self.settings_screen.ids.settings_lxmf_sync_periodic.text = tr("Auto sync every ")+interval_text
                 if save:
                     if (event == None or not hasattr(event, "button") or not event.button) or not "scroll" in event.button:
                         self.sideband.config["lxmf_sync_interval"] = interval
@@ -3635,7 +3635,7 @@ class SidebandApp(MDApp):
                 slider_val = int(self.settings_screen.ids.settings_lxmf_require_stamps_cost.value)
                 cost_text = str(slider_val)
 
-                self.settings_screen.ids.settings_lxmf_require_stamps_label.text = f"Require stamp cost {cost_text} for incoming messages"
+                self.settings_screen.ids.settings_lxmf_require_stamps_label.text = tr('Require stamp cost {cost_text} for incoming messages', cost_text=cost_text)
                 if save:
                     if slider_val > 32:
                         slider_val = 32
@@ -3971,10 +3971,10 @@ class SidebandApp(MDApp):
                 if sender == self.connectivity_screen.ids.connectivity_enable_transport:
                     if sender.active:
                         def cb(dt):
-                            yes_button = MDRectangleFlatButton(text="Understood",font_size=dp(18), theme_text_color="Custom", line_color=self.color_reject, text_color=self.color_reject)
+                            yes_button = MDRectangleFlatButton(text=tr("Understood"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_reject, text_color=self.color_reject)
                             dialog = MDDialog(
-                                title="Warning!",
-                                text="You have enabled [i]Reticulum Transport[/i] for this device.\n\nFor normal operation, and for most users, this is [b]not[/b] necessary, and might even degrade your network performance.\n\nWhen Transport is enabled, your device will route traffic between all connected interfaces and for all reachable devices on the network.\n\nThis should only be done if you intend to keep your device in a fixed position and for it to remain available continously.\n\nIf this is not the case, or you don't understand any of this, turn off Transport.",
+                                title=tr("Warning!"),
+                                text=tr("You have enabled [i]Reticulum Transport[/i] for this device.\n\nFor normal operation, and for most users, this is [b]not[/b] necessary, and might even degrade your network performance.\n\nWhen Transport is enabled, your device will route traffic between all connected interfaces and for all reachable devices on the network.\n\nThis should only be done if you intend to keep your device in a fixed position and for it to remain available continously.\n\nIf this is not the case, or you don't understand any of this, turn off Transport."),
                                 buttons=[ yes_button ],
                                 # elevation=0,
                             )
@@ -4038,15 +4038,15 @@ class SidebandApp(MDApp):
 
             if RNS.vendor.platformutils.get_platform() == "android":
                 if not self.sideband.getpersistent("service.is_controlling_connectivity"):
-                    info =  "Sideband is connected via a shared Reticulum instance running on this system.\n\n"
-                    info += "To configure connectivity, edit the relevant configuration file for the instance."
+                    info =  tr("Sideband is connected via a shared Reticulum instance running on this system.\n\n")
+                    info += tr("To configure connectivity, edit the relevant configuration file for the instance.")
                     self.connectivity_screen.ids.connectivity_info.text = info
                     con_hide_settings()
 
                 else:
-                    info =  "By default, Sideband will try to discover and connect to any available Reticulum networks via active WiFi and/or Ethernet interfaces. If any Reticulum Transport Instances are found, Sideband will use these to connect to wider Reticulum networks. You can disable this behaviour if you don't want it.\n\n"
-                    info += "You can also connect to a network via a remote or local Reticulum instance using TCP or I2P. [b]Please Note![/b] Connecting via I2P requires that you already have I2P running on your device, and that the SAM API is enabled.\n\n"
-                    info += "For changes to connectivity to take effect, you must either restart the RNS service, or completely shut down and restart Sideband.\n"
+                    info =  tr("By default, Sideband will try to discover and connect to any available Reticulum networks via active WiFi and/or Ethernet interfaces. If any Reticulum Transport Instances are found, Sideband will use these to connect to wider Reticulum networks. You can disable this behaviour if you don't want it.\n\n")
+                    info += tr("You can also connect to a network via a remote or local Reticulum instance using TCP or I2P. [b]Please Note![/b] Connecting via I2P requires that you already have I2P running on your device, and that the SAM API is enabled.\n\n")
+                    info += tr("For changes to connectivity to take effect, you must either restart the RNS service, or completely shut down and restart Sideband.\n")
                     self.connectivity_screen.ids.connectivity_info.text = info
 
                     self.connectivity_screen.ids.connectivity_use_local.active = self.sideband.config["connect_local"]
@@ -4145,15 +4145,15 @@ class SidebandApp(MDApp):
                 info = ""
 
                 if self.sideband.reticulum.is_connected_to_shared_instance:
-                    info =  "Sideband is connected via a shared Reticulum instance running on this system.\n\n"
-                    info += "To get connectivity status, use the [b]rnstatus[/b] utility.\n\n"
-                    info += "To configure connectivity, edit the configuration file located at:\n\n"
+                    info =  tr("Sideband is connected via a shared Reticulum instance running on this system.\n\n")
+                    info += tr("To get connectivity status, use the [b]rnstatus[/b] utility.\n\n")
+                    info += tr("To configure connectivity, edit the configuration file located at:\n\n")
                     if not RNS.vendor.platformutils.is_windows(): info += str(RNS.Reticulum.configpath)
                     else:                                         info += str(RNS.Reticulum.configpath.replace("/", "\\"))
                 else:
-                    info =  "Sideband is currently running a standalone or master Reticulum instance on this system.\n\n"
-                    info += "To get connectivity status, use the [b]rnstatus[/b] utility.\n\n"
-                    info += "To configure connectivity, edit the configuration file located at:\n\n"
+                    info =  tr("Sideband is currently running a standalone or master Reticulum instance on this system.\n\n")
+                    info += tr("To get connectivity status, use the [b]rnstatus[/b] utility.\n\n")
+                    info += tr("To configure connectivity, edit the configuration file located at:\n\n")
                     if not RNS.vendor.platformutils.is_windows(): info += str(RNS.Reticulum.configpath)
                     else:                                         info += str(RNS.Reticulum.configpath.replace("/", "\\"))
 
@@ -4167,15 +4167,15 @@ class SidebandApp(MDApp):
         self.open_conversations(direction="right")
     
     def rpc_copy_action(self, sender=None):
-        c_yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.color_reject, text_color=self.color_reject)
-        c_no_button = MDRectangleFlatButton(text="No, go back",font_size=dp(18))
-        c_dialog = MDDialog(text="[b]Caution![/b]\n\nA configuration line containing your Reticulum RPC key will be copied to the system clipboard.\n\nWhile the key can only be used by other programs running locally on this system, it is still recommended to take care in not exposing it to unwanted programs.\n\nAre you sure that you wish to proceed?", buttons=[ c_no_button, c_yes_button ])
+        c_yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_reject, text_color=self.color_reject)
+        c_no_button = MDRectangleFlatButton(text=tr("No, go back"),font_size=dp(18))
+        c_dialog = MDDialog(text=tr("[b]Caution![/b]\n\nA configuration line containing your Reticulum RPC key will be copied to the system clipboard.\n\nWhile the key can only be used by other programs running locally on this system, it is still recommended to take care in not exposing it to unwanted programs.\n\nAre you sure that you wish to proceed?"), buttons=[ c_no_button, c_yes_button ])
         def c_dl_no(s):
             c_dialog.dismiss()
         def c_dl_yes(s):
             c_dialog.dismiss()
-            yes_button = MDRectangleFlatButton(text="OK")
-            dialog = MDDialog(text="The RPC configuration was copied to the system clipboard. Paste in into the [b][reticulum][/b] section of the relevant Reticulum configuration file to allow access to this instance.", buttons=[ yes_button ])
+            yes_button = MDRectangleFlatButton(text=tr("OK"))
+            dialog = MDDialog(text=tr("The RPC configuration was copied to the system clipboard. Paste in into the [b][reticulum][/b] section of the relevant Reticulum configuration file to allow access to this instance."), buttons=[ yes_button ])
             def dl_yes(s):
                 dialog.dismiss()
             yes_button.bind(on_release=dl_yes)
@@ -4227,9 +4227,9 @@ class SidebandApp(MDApp):
             threading.Thread(target=lj, daemon=True).start()
 
     def repository_update_info(self, sender=None):
-        info =  "Sideband includes a small repository of useful software and guides related to the Sideband and Reticulum ecosystem. You can start this repository to allow other people on your local network to download software and information directly from this device, without needing an Internet connection.\n\n"
-        info += "If you want to share the Sideband application itself via the repository server, you must first download it into the local repository, using the \"Update Content\" button below.\n\n"
-        info += "To make the repository available on your local network, simply start it below, and it will become browsable on a local IP address for anyone connected to the same WiFi or wired network.\n\n"
+        info =  tr("Sideband includes a small repository of useful software and guides related to the Sideband and Reticulum ecosystem. You can start this repository to allow other people on your local network to download software and information directly from this device, without needing an Internet connection.\n\n")
+        info += tr("If you want to share the Sideband application itself via the repository server, you must first download it into the local repository, using the \"Update Content\" button below.\n\n")
+        info += tr("To make the repository available on your local network, simply start it below, and it will become browsable on a local IP address for anyone connected to the same WiFi or wired network.\n\n")
         if self.sideband.webshare_server != None:
             def getIP():
                 adrs = []
@@ -4264,7 +4264,7 @@ class SidebandApp(MDApp):
 
             ips = getIP()
             if ips == None or len(ips) == 0:
-                info += "The repository server is running, but the local device IP address could not be determined.\n\nYou can access the repository by pointing a browser to: https://DEVICE_IP:4444/"
+                info += tr("The repository server is running, but the local device IP address could not be determined.\n\nYou can access the repository by pointing a browser to: https://DEVICE_IP:4444/")
                 self.repository_url = None
             else:
                 ipstr = ""
@@ -4276,8 +4276,7 @@ class SidebandApp(MDApp):
                         self.repository_url = ipurl
                         self.rnode_flasher_url = ipurl+"mirrors/rnode-flasher/RNode_Flasher.html"
 
-                ms = "" if len(ips) == 1 else "es"
-                info += "The repository server is running at the following address" + ms +":\n\n"+ipstr
+                info += tr('The repository server is running at the following addresses:\n\n')+ipstr
                 self.repository_screen.ids.repository_info.bind(on_ref_press=self.repository_link_action)
 
             def cb(dt):
@@ -4330,14 +4329,14 @@ class SidebandApp(MDApp):
                                     downloads.append([fw_url, pkgname, fw_version])
 
                     except Exception as e:
-                        self.repository_screen.ids.repository_update.text = f"Downloading RNode firmware release info failed with the error:\n"+str(e)
+                        self.repository_screen.ids.repository_update.text = tr('Downloading RNode firmware release info failed with the error:\n')+str(e)
                         return
 
                     try:
                         for download in downloads:
                             fw_url = download[0]
                             pkgname = download[1]
-                            self.repository_screen.ids.repository_update.text = "Downloading: "+str(pkgname)
+                            self.repository_screen.ids.repository_update.text = tr("Downloading: ")+str(pkgname)
                             with requests.get(fw_url, stream=True) as response:
                                 with open("./dl_tmp", "wb") as tmp_file:
                                     cs = 32*1024
@@ -4345,13 +4344,13 @@ class SidebandApp(MDApp):
                                     for chunk in response.iter_content(chunk_size=cs):
                                         tmp_file.write(chunk)
                                         tds += cs
-                                        self.repository_screen.ids.repository_update.text = "Downloaded "+RNS.prettysize(tds)+" of "+str(pkgname)
+                                        self.repository_screen.ids.repository_update.text = tr("Downloaded ")+RNS.prettysize(tds)+tr(" of ")+str(pkgname)
 
                                 os.rename("./dl_tmp", f"{self.sideband.webshare_dir}/pkg/{pkgname}")
-                                self.repository_screen.ids.repository_update.text = f"Added {pkgname} to the repository!"
+                                self.repository_screen.ids.repository_update.text = tr('Added {pkgname} to the repository!', pkgname=pkgname)
 
                     except Exception as e:
-                        self.repository_screen.ids.repository_update.text = f"Downloading RNode firmware failed with the error:\n"+str(e)
+                        self.repository_screen.ids.repository_update.text = tr('Downloading RNode firmware failed with the error:\n')+str(e)
                         return
 
                 ### Sideband APK File #########
@@ -4373,10 +4372,10 @@ class SidebandApp(MDApp):
                                     apk_version = release["tag_name"]
                                     RNS.log(f"Found version {apk_version} artefact {pkgname} at {apk_url}", RNS.LOG_DEBUG)
                     except Exception as e:
-                        self.repository_screen.ids.repository_update.text = f"Downloading Sideband APK release info failed with the error:\n"+str(e)
+                        self.repository_screen.ids.repository_update.text = tr('Downloading Sideband APK release info failed with the error:\n')+str(e)
                         return
 
-                    self.repository_screen.ids.repository_update.text = "Downloading: "+str(pkgname)
+                    self.repository_screen.ids.repository_update.text = tr("Downloading: ")+str(pkgname)
                     with requests.get(apk_url, stream=True) as response:
                         with open("./dl_tmp", "wb") as tmp_file:
                             cs = 32*1024
@@ -4384,17 +4383,17 @@ class SidebandApp(MDApp):
                             for chunk in response.iter_content(chunk_size=cs):
                                 tmp_file.write(chunk)
                                 tds += cs
-                                self.repository_screen.ids.repository_update.text = "Downloaded "+RNS.prettysize(tds)+" of "+str(pkgname)
+                                self.repository_screen.ids.repository_update.text = tr("Downloaded ")+RNS.prettysize(tds)+tr(" of ")+str(pkgname)
 
                         os.rename("./dl_tmp", f"{self.sideband.webshare_dir}/pkg/{pkgname}")
-                        self.repository_screen.ids.repository_update.text = f"Added {pkgname} to the repository!"
+                        self.repository_screen.ids.repository_update.text = tr('Added {pkgname} to the repository!', pkgname=pkgname)
 
-                self.repository_screen.ids.repository_update.text = f"Repository contents updated successfully!"
+                self.repository_screen.ids.repository_update.text = tr('Repository contents updated successfully!')
 
             except Exception as e:
-                self.repository_screen.ids.repository_update.text = f"Downloading contents failed with the error:\n"+str(e)
+                self.repository_screen.ids.repository_update.text = tr('Downloading contents failed with the error:\n')+str(e)
 
-        self.repository_screen.ids.repository_update.text = "Starting package download..."
+        self.repository_screen.ids.repository_update.text = tr("Starting package download...")
         def start_update_job(sender=None):
             threading.Thread(target=update_job, daemon=True).start()
         Clock.schedule_once(start_update_job, 0.5)
@@ -4539,12 +4538,12 @@ class SidebandApp(MDApp):
             self.bind_clipboard_actions(self.plugins_screen.ids)
 
             self.plugins_screen.ids.plugins_scrollview.effect_cls = ScrollEffect
-            info1 = "You can extend Sideband functionality with command and service plugins. This lets you to add your own custom functionality, or add community-developed features.\n"
-            info2 = "[b]Take extreme caution![/b]\nIf you add a plugin that you did not write yourself, make [b]absolutely[/b] sure you know what it is doing! Loaded plugins have full access to your Sideband application, and should only be added if you are completely certain they are trustworthy.\n\n"
-            info2 += "[i]Command Plugins[/i] allow you to define custom commands that can be carried out in response to LXMF command messages, and they can respond with any kind of information or data to the requestor (or to any LXMF address).\n\n"
-            info2 += "By using [i]Service Plugins[/i], you can start additional services or programs within the Sideband application context, that other plugins (or Sideband itself) can interact with.\n\n"
-            info2 += "With [i]Telemetry Plugins[/i], you can add custom telemetry from external devices and services to the Sideband telemetry system.\n\n"
-            info2 += "Restart Sideband for changes to these settings to take effect."
+            info1 = tr("You can extend Sideband functionality with command and service plugins. This lets you to add your own custom functionality, or add community-developed features.\n")
+            info2 = tr("[b]Take extreme caution![/b]\nIf you add a plugin that you did not write yourself, make [b]absolutely[/b] sure you know what it is doing! Loaded plugins have full access to your Sideband application, and should only be added if you are completely certain they are trustworthy.\n\n")
+            info2 += tr("[i]Command Plugins[/i] allow you to define custom commands that can be carried out in response to LXMF command messages, and they can respond with any kind of information or data to the requestor (or to any LXMF address).\n\n")
+            info2 += tr("By using [i]Service Plugins[/i], you can start additional services or programs within the Sideband application context, that other plugins (or Sideband itself) can interact with.\n\n")
+            info2 += tr("With [i]Telemetry Plugins[/i], you can add custom telemetry from external devices and services to the Sideband telemetry system.\n\n")
+            info2 += tr("Restart Sideband for changes to these settings to take effect.")
             self.plugins_screen.ids.plugins_info1.text = info1
             self.plugins_screen.ids.plugins_info2.text = info2
 
@@ -4588,12 +4587,12 @@ class SidebandApp(MDApp):
                 self.sideband.save_configuration()
                 
                 if RNS.vendor.platformutils.is_android():
-                    toast("Using \""+str(path)+"\" as plugin directory")
+                    toast(tr("Using \"")+str(path)+tr("\" as plugin directory"))
                 else:
-                    ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                    ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                     ate_dialog = MDDialog(
-                        title="Directory Set",
-                        text="Using \""+str(path)+"\" as plugin directory",
+                        title=tr("Directory Set"),
+                        text=tr("Using \"")+str(path)+tr("\" as plugin directory"),
                         buttons=[ ok_button ],
                     )
                     ok_button.bind(on_release=ate_dialog.dismiss)
@@ -4602,12 +4601,12 @@ class SidebandApp(MDApp):
         except Exception as e:
             RNS.log(f"Error while setting plugins directory to \"{path}\": "+str(e), RNS.LOG_ERROR)
             if RNS.vendor.platformutils.get_platform() == "android":
-                toast("Could not set plugins directory to \""+str(path)+"\"")
+                toast(tr("Could not set plugins directory to \"")+str(path)+"\"")
             else:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 e_dialog = MDDialog(
-                    title="Error",
-                    text="Could not set plugins directory to \""+str(path)+"\"",
+                    title=tr("Error"),
+                    text=tr("Could not set plugins directory to \"")+str(path)+"\"",
                     buttons=[ ok_button ],
                 )
                 ok_button.bind(on_release=e_dialog.dismiss)
@@ -4650,12 +4649,12 @@ class SidebandApp(MDApp):
                 self.sideband.save_configuration()
                 
                 if RNS.vendor.platformutils.is_android():
-                    toast("Error reading directory, check permissions!")
+                    toast(tr("Error reading directory, check permissions!"))
                 else:
-                    ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                    ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                     ate_dialog = MDDialog(
-                        title="Error",
-                        text="Could not read directory, check permissions!",
+                        title=tr("Error"),
+                        text=tr("Could not read directory, check permissions!"),
                         buttons=[ ok_button ],
                     )
                     ok_button.bind(on_release=ate_dialog.dismiss)
@@ -4665,12 +4664,12 @@ class SidebandApp(MDApp):
             self.sideband.config["command_plugins_path"] = None
             self.sideband.save_configuration()
             if RNS.vendor.platformutils.is_android():
-                toast("No file access, check permissions!")
+                toast(tr("No file access, check permissions!"))
             else:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 ate_dialog = MDDialog(
-                    title="Error",
-                    text="No file access, check permissions!",
+                    title=tr("Error"),
+                    text=tr("No file access, check permissions!"),
                     buttons=[ ok_button ],
                 )
                 ok_button.bind(on_release=ate_dialog.dismiss)
@@ -4767,7 +4766,7 @@ class SidebandApp(MDApp):
         if self.sideband.voice_running:
             if self.sideband.telephone.is_ringing:
                 self.sideband.telephone.answer()
-                toast("Call answered")
+                toast(tr("Call answered"))
 
     def voice_reject_action(self, sender=None):
         if self.sideband.voice_running:
@@ -4825,9 +4824,9 @@ class SidebandApp(MDApp):
     
     def telemetry_send_update(self, sender=None):
         if not hasattr(self, "telemetry_info_dialog") or self.telemetry_info_dialog == None:
-            ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+            ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
             self.telemetry_info_dialog = MDDialog(
-                title="Info",
+                title=tr("Info"),
                 text="",
                 buttons=[ ok_button ],
             )
@@ -4845,29 +4844,29 @@ class SidebandApp(MDApp):
             result = self.sideband.send_latest_telemetry(to_addr=collector_address)
 
         if result == "no_address":
-            title_str = "Invalid Address"
-            info_str  = "You must specify a valid LXMF address for the collector you want to sent data to."
+            title_str = tr("Invalid Address")
+            info_str  = tr("You must specify a valid LXMF address for the collector you want to sent data to.")
         elif result == "destination_unknown":
-            title_str = "Unknown Destination"
-            info_str  = "No keys known for the destination. Connected reticules have been queried for the keys. Try again when an announce for the destination has arrived."
+            title_str = tr("Unknown Destination")
+            info_str  = tr("No keys known for the destination. Connected reticules have been queried for the keys. Try again when an announce for the destination has arrived.")
         elif result == "in_progress":
-            title_str = "Transfer In Progress"
-            info_str  = "There is already an outbound telemetry transfer in progress to the collector."
+            title_str = tr("Transfer In Progress")
+            info_str  = tr("There is already an outbound telemetry transfer in progress to the collector.")
         elif result == "already_sent":
-            title_str = "Already Delivered"
-            info_str  = "The current telemetry data was already sent and delivered to the collector or propagation network."
+            title_str = tr("Already Delivered")
+            info_str  = tr("The current telemetry data was already sent and delivered to the collector or propagation network.")
         elif result == "sent":
-            title_str = "Update Sent"
-            info_str  = "A telemetry update was sent to the collector."
+            title_str = tr("Update Sent")
+            info_str  = tr("A telemetry update was sent to the collector.")
         elif result == "not_sent":
-            title_str = "Not Sent"
-            info_str  = "The telemetry update could not be sent."
+            title_str = tr("Not Sent")
+            info_str  = tr("The telemetry update could not be sent.")
         elif result == "nothing_to_send":
-            title_str = "Nothing to Send"
-            info_str  = "There was no new data to send."
+            title_str = tr("Nothing to Send")
+            info_str  = tr("There was no new data to send.")
         else:
-            title_str = "Unknown Status"
-            info_str  = "The status of the telemetry update is unknown: "+str(result)
+            title_str = tr("Unknown Status")
+            info_str  = tr("The status of the telemetry update is unknown: ")+str(result)
 
         self.telemetry_info_dialog.title = title_str
         self.telemetry_info_dialog.text  = info_str
@@ -4875,9 +4874,9 @@ class SidebandApp(MDApp):
 
     def telemetry_request_action(self, sender=None):
         if not hasattr(self, "telemetry_info_dialog") or self.telemetry_info_dialog == None:
-            ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+            ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
             self.telemetry_info_dialog = MDDialog(
-                title="Info",
+                title=tr("Info"),
                 text="",
                 buttons=[ ok_button ],
             )
@@ -4889,23 +4888,23 @@ class SidebandApp(MDApp):
         result = self.sideband.request_latest_telemetry(from_addr=self.sideband.config["telemetry_collector"], is_collector_request=True)
 
         if result == "no_address":
-            title_str = "Invalid Address"
-            info_str  = "You must specify a valid LXMF address for the collector you want to request data from."
+            title_str = tr("Invalid Address")
+            info_str  = tr("You must specify a valid LXMF address for the collector you want to request data from.")
         elif result == "destination_unknown":
-            title_str = "Unknown Destination"
-            info_str  = "No keys known for the destination. Connected reticules have been queried for the keys. Try again when an announce for the destination has arrived."
+            title_str = tr("Unknown Destination")
+            info_str  = tr("No keys known for the destination. Connected reticules have been queried for the keys. Try again when an announce for the destination has arrived.")
         elif result == "in_progress":
-            title_str = "Transfer In Progress"
-            info_str  = "There is already a telemetry request transfer in progress to the collector."
+            title_str = tr("Transfer In Progress")
+            info_str  = tr("There is already a telemetry request transfer in progress to the collector.")
         elif result == "sent":
-            title_str = "Request Sent"
-            info_str  = "A telemetry request was sent to the collector. The collector should send any available telemetry shortly."
+            title_str = tr("Request Sent")
+            info_str  = tr("A telemetry request was sent to the collector. The collector should send any available telemetry shortly.")
         elif result == "not_sent":
-            title_str = "Not Sent"
-            info_str  = "A telemetry request could not be sent."
+            title_str = tr("Not Sent")
+            info_str  = tr("A telemetry request could not be sent.")
         else:
-            title_str = "Unknown Status"
-            info_str  = "The status of the telemetry request is unknown: "+str(result)
+            title_str = tr("Unknown Status")
+            info_str  = tr("The status of the telemetry request is unknown: ")+str(result)
 
         self.telemetry_info_dialog.title = title_str
         self.telemetry_info_dialog.text  = info_str
@@ -4924,12 +4923,12 @@ class SidebandApp(MDApp):
             self.sideband.save_configuration()
 
             if RNS.vendor.platformutils.is_android():
-                toast("Using \""+os.path.basename(path)+"\" as offline map")
+                toast(tr("Using \"")+os.path.basename(path)+tr("\" as offline map"))
             else:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 ate_dialog = MDDialog(
-                    title="Map Set",
-                    text="Using \""+os.path.basename(path)+"\" as offline map",
+                    title=tr("Map Set"),
+                    text=tr("Using \"")+os.path.basename(path)+tr("\" as offline map"),
                     buttons=[ ok_button ],
                 )
                 ok_button.bind(on_release=ate_dialog.dismiss)
@@ -4938,12 +4937,12 @@ class SidebandApp(MDApp):
         except Exception as e:
             RNS.log(f"Error while loading map \"{path}\": "+str(e), RNS.LOG_ERROR)
             if RNS.vendor.platformutils.get_platform() == "android":
-                toast("Could not load map \""+os.path.basename(path)+"\"")
+                toast(tr("Could not load map \"")+os.path.basename(path)+"\"")
             else:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 map_dialog = MDDialog(
-                    title="Map Error",
-                    text="The specified map file could not be loaded. Make sure the selected file is an MBTiles map in raster format. Vector maps are currently not supported.",
+                    title=tr("Map Error"),
+                    text=tr("The specified map file could not be loaded. Make sure the selected file is an MBTiles map in raster format. Vector maps are currently not supported."),
                     buttons=[ ok_button ],
                 )
                 ok_button.bind(on_release=map_dialog.dismiss)
@@ -4994,12 +4993,12 @@ class SidebandApp(MDApp):
                 self.sideband.config["map_storage_path"] = None
                 self.sideband.save_configuration()
                 if RNS.vendor.platformutils.is_android():
-                    toast("Error reading directory, check permissions!")
+                    toast(tr("Error reading directory, check permissions!"))
                 else:
-                    ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                    ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                     ate_dialog = MDDialog(
-                        title="Error",
-                        text="Could not read directory, check permissions!",
+                        title=tr("Error"),
+                        text=tr("Could not read directory, check permissions!"),
                         buttons=[ ok_button ],
                     )
                     ok_button.bind(on_release=ate_dialog.dismiss)
@@ -5009,12 +5008,12 @@ class SidebandApp(MDApp):
             self.sideband.config["map_storage_path"] = None
             self.sideband.save_configuration()
             if RNS.vendor.platformutils.is_android():
-                toast("No file access, check permissions!")
+                toast(tr("No file access, check permissions!"))
             else:
-                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                ok_button = MDRectangleFlatButton(text=tr("OK"),font_size=dp(18))
                 ate_dialog = MDDialog(
-                    title="Error",
-                    text="No file access, check permissions!",
+                    title=tr("Error"),
+                    text=tr("No file access, check permissions!"),
                     buttons=[ ok_button ],
                 )
                 ok_button.bind(on_release=ate_dialog.dismiss)
@@ -5269,7 +5268,7 @@ class SidebandApp(MDApp):
             self.map_settings_screen = Builder.load_string(layout_map_settings_screen)
             self.map_settings_screen.app = self
             self.root.ids.screen_manager.add_widget(self.map_settings_screen)
-            self.map_settings_screen.ids.map_config_info.text = "\n\nSideband can use map sources from the Internet, or a map source stored locally on this device in MBTiles format."
+            self.map_settings_screen.ids.map_config_info.text = tr("\n\nSideband can use map sources from the Internet, or a map source stored locally on this device in MBTiles format.")
             self.map_settings_screen.ids.map_settings_scrollview.effect_cls = ScrollEffect
             self.map_settings_init()
 
@@ -5281,20 +5280,20 @@ class SidebandApp(MDApp):
         def update_cache_size(dt):
             size = self.sideband.get_map_cache_size()
             size_str = RNS.prettysize(size)
-            self.map_settings_screen.ids.map_cache_button.text = f"Clear {size_str} map cache"
+            self.map_settings_screen.ids.map_cache_button.text = tr('Clear {size_str} map cache', size_str=size_str)
             if size > 0.0:
                 self.map_settings_screen.ids.map_cache_button.disabled = False
             else:
                 self.map_settings_screen.ids.map_cache_button.disabled = True
-                self.map_settings_screen.ids.map_cache_button.text = f"No data in map cache"
+                self.map_settings_screen.ids.map_cache_button.text = tr('No data in map cache')
 
         Clock.schedule_once(update_cache_size, 0.35)
 
     def map_clear_cache(self, sender=None):
-        yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.color_reject, text_color=self.color_reject)
-        no_button = MDRectangleFlatButton(text="No",font_size=dp(18))
+        yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.color_reject, text_color=self.color_reject)
+        no_button = MDRectangleFlatButton(text=tr("No"),font_size=dp(18))
         dialog = MDDialog(
-            title="Clear map cache?",
+            title=tr("Clear map cache?"),
             buttons=[ yes_button, no_button ],
             # elevation=0,
         )
@@ -5343,11 +5342,11 @@ class SidebandApp(MDApp):
         location = self.sideband.peer_location(context_dest)
         if not location:
             self.location_error_dialog = MDDialog(
-                title="No Location",
-                text="No recent location updates have been received from this peer. You can use the the [b]Situation Map[/b] to manually search for earlier telemetry.",
+                title=tr("No Location"),
+                text=tr("No recent location updates have been received from this peer. You can use the the [b]Situation Map[/b] to manually search for earlier telemetry."),
                 buttons=[
                     MDRectangleFlatButton(
-                        text="OK",
+                        text=tr("OK"),
                         font_size=dp(18),
                         on_release=self.close_location_error_dialog
                     )
@@ -5363,11 +5362,11 @@ class SidebandApp(MDApp):
         location = self.sideband.peer_location(self.sideband.lxmf_destination.hash)
         if not location:
             self.location_error_dialog = MDDialog(
-                title="No Location",
-                text="Your location is currently unknown. Make sure the relevant telemetry sensors and permissions have been enabled.",
+                title=tr("No Location"),
+                text=tr("Your location is currently unknown. Make sure the relevant telemetry sensors and permissions have been enabled."),
                 buttons=[
                     MDRectangleFlatButton(
-                        text="OK",
+                        text=tr("OK"),
                         font_size=dp(18),
                         on_release=self.close_location_error_dialog
                     )
@@ -5390,7 +5389,7 @@ class SidebandApp(MDApp):
             try:
                 if hasattr(sender, "source_dest"):
                     self.sideband.request_latest_telemetry(from_addr=sender.source_dest)
-                    toast("Telemetry request sent")
+                    toast(tr("Telemetry request sent"))
             except Exception as e:
                 RNS.log(f"Could not request telemetry update: {e}", RNS.LOG_ERROR)
         else:
@@ -5673,7 +5672,7 @@ class SidebandApp(MDApp):
             self.root.ids.screen_manager.transition = self.slide_transition
             self.root.ids.screen_manager.transition.direction = direction
 
-        info = "The [b]Local Broadcasts[/b] feature will allow you to send and listen for local broadcast transmissions on all connected interfaces.\n\n[b]Local Broadcasts[/b] makes it easy to establish public information exchange with anyone in direct radio range, or even with large areas far away using the [i]Remote Broadcast Repeater[/i] feature.\n\nThese features are not yet implemented in Sideband.\n\nWant it faster? Go to [u][ref=link]https://unsigned.io/donate[/ref][/u] to support the project."
+        info = tr("The [b]Local Broadcasts[/b] feature will allow you to send and listen for local broadcast transmissions on all connected interfaces.\n\n[b]Local Broadcasts[/b] makes it easy to establish public information exchange with anyone in direct radio range, or even with large areas far away using the [i]Remote Broadcast Repeater[/i] feature.\n\nThese features are not yet implemented in Sideband.\n\nWant it faster? Go to [u][ref=link]https://unsigned.io/donate[/ref][/u] to support the project.")
         if self.theme_cls.theme_style == "Dark":
             info = "[color=#"+dark_theme_text_color+"]"+info+"[/color]"
         self.broadcasts_screen.ids.broadcasts_info.text = info

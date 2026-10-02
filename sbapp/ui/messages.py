@@ -1,5 +1,10 @@
 import time
 import RNS
+
+if RNS.vendor.platformutils.get_platform() == "android":
+    from i18n import translate as tr
+else:
+    from sbapp.i18n import translate as tr
 import LXMF
 
 from kivy.metrics import dp,sp
@@ -131,80 +136,80 @@ class Messages():
         
         msg = self.app.sideband.message(lxm_hash)
         if msg:
-            close_button = MDRectangleFlatButton(text="Close", font_size=dp(18))
+            close_button = MDRectangleFlatButton(text=tr("Close"), font_size=dp(18))
 
             d_text = ""
 
             if "lxm" in msg and msg["lxm"] != None:
                 size_str = RNS.prettysize(msg["lxm"].packed_size)
-                d_text += f"[size={ss}][b]Message size[/b] {size_str}[/size]\n"
+                d_text += tr('[size={ss}][b]Message size[/b] {size_str}[/size]\n', ss=ss, size_str=size_str)
 
                 if msg["lxm"].signature_validated:
-                    d_text += f"[size={ss}][b]Signature[/b] validated successfully[/size]\n"
+                    d_text += tr('[size={ss}][b]Signature[/b] validated successfully[/size]\n', ss=ss)
                 else:
-                    d_text += f"[size={ss}][b]Signature[/b] is invalid[/size]\n"
+                    d_text += tr('[size={ss}][b]Signature[/b] is invalid[/size]\n', ss=ss)
 
             ratchet_method = ""
             if "method" in msg:
                 if msg["method"] == LXMF.LXMessage.UNKNOWN:
-                    d_text += f"[size={ss}][b]Delivered[/b] via unknown method[/size]\n"
+                    d_text += tr('[size={ss}][b]Delivered[/b] via unknown method[/size]\n', ss=ss)
                 if msg["method"] == LXMF.LXMessage.OPPORTUNISTIC:
-                    ratchet_method = "with ratchet"
-                    d_text += f"[size={ss}][b]Delivered[/b] opportunistically[/size]\n"
+                    ratchet_method = tr("with ratchet")
+                    d_text += tr('[size={ss}][b]Delivered[/b] opportunistically[/size]\n', ss=ss)
                 if msg["method"] == LXMF.LXMessage.DIRECT:
-                    ratchet_method = "by link"
-                    d_text += f"[size={ss}][b]Delivered[/b] over direct link[/size]\n"
+                    ratchet_method = tr("by link")
+                    d_text += tr('[size={ss}][b]Delivered[/b] over direct link[/size]\n', ss=ss)
                 if msg["method"] == LXMF.LXMessage.PROPAGATED:
-                    ratchet_method = "with ratchet"
-                    d_text += f"[size={ss}][b]Delivered[/b] to propagation network[/size]\n"
+                    ratchet_method = tr("with ratchet")
+                    d_text += tr('[size={ss}][b]Delivered[/b] to propagation network[/size]\n', ss=ss)
 
             if msg["extras"] != None and "ratchet_id" in msg["extras"]:
                 r_str = RNS.prettyhexrep(msg["extras"]["ratchet_id"])
-                d_text += f"[size={ss}][b]Encrypted[/b] {ratchet_method} {r_str}[/size]\n"
+                d_text += tr('[size={ss}][b]Encrypted[/b] {ratchet_method} {r_str}[/size]\n', ss=ss, ratchet_method=ratchet_method, r_str=r_str)
             else:
                 if msg["method"] == LXMF.LXMessage.OPPORTUNISTIC or msg["method"] == LXMF.LXMessage.PROPAGATED:
-                    d_text += f"[size={ss}][b]Encrypted[/b] with destination identity key[/size]\n"
+                    d_text += tr('[size={ss}][b]Encrypted[/b] with destination identity key[/size]\n', ss=ss)
                 else:
-                    d_text += f"[size={ss}][b]Encryption[/b] status unknown[/size]\n"
+                    d_text += tr('[size={ss}][b]Encryption[/b] status unknown[/size]\n', ss=ss)
             
             if msg["extras"] != None and "stamp_checked" in msg["extras"]:
-                valid_str = " is not valid"
+                valid_str = tr(" is not valid")
                 if msg["extras"]["stamp_valid"] == True:
-                    valid_str = " is valid"
+                    valid_str = tr(" is valid")
                 sv = msg["extras"]["stamp_value"]
                 if sv == None:
                     if "stamp_raw" in msg["extras"]:
                         sv_str = ""
-                        valid_str = "is not valid"
+                        valid_str = tr("is not valid")
                     else:
                         sv_str = ""
-                        valid_str = "was not included in the message"
+                        valid_str = tr("was not included in the message")
                 elif sv > 255:
-                    sv_str = "generated from ticket"
+                    sv_str = tr("generated from ticket")
                 else:
-                    sv_str = f"with value {sv}"
+                    sv_str = tr('with value {sv}', sv=sv)
 
                 if msg["extras"]["stamp_checked"] == True:
-                    d_text += f"[size={ss}][b]Stamp[/b] {sv_str}{valid_str}[/size]\n"
+                    d_text += tr('[size={ss}][b]Stamp[/b] {sv_str}{valid_str}[/size]\n', ss=ss, sv_str=sv_str, valid_str=valid_str)
 
                 else:
                     sv = msg["extras"]["stamp_value"]
                     if sv == None:
                         pass
                     elif sv > 255:
-                        d_text += f"[size={ss}][b]Stamp[/b] generated from ticket[/size]\n"
+                        d_text += tr('[size={ss}][b]Stamp[/b] generated from ticket[/size]\n', ss=ss)
                     else:
-                        d_text += f"[size={ss}][b]Value[/b] of stamp is {sv}[/size]\n"
+                        d_text += tr('[size={ss}][b]Value[/b] of stamp is {sv}[/size]\n', ss=ss, sv=sv)
 
                 # Stamp details
                 if "stamp_raw" in msg["extras"] and type(msg["extras"]["stamp_raw"]) == bytes:
                     sstr = RNS.hexrep(msg["extras"]["stamp_raw"])
                     sstr1 = RNS.hexrep(msg["extras"]["stamp_raw"][:16])
                     sstr2 = RNS.hexrep(msg["extras"]["stamp_raw"][16:])
-                    d_text += f"[size={ss}]\n[b]Raw stamp[/b]\n[/size][size={ms}][font=RobotoMono-Regular]{sstr1}\n{sstr2}[/font][/size]\n"
+                    d_text += tr('[size={ss}]\n[b]Raw stamp[/b]\n[/size][size={ms}][font=RobotoMono-Regular]{sstr1}\n{sstr2}[/font][/size]\n', ss=ss, ms=ms, sstr1=sstr1, sstr2=sstr2)
 
             self.details_dialog = MDDialog(
-                title="Message Details",
+                title=tr("Message Details"),
                 type="simple",
                 text=d_text,
                 # items=d_items,
@@ -252,7 +257,7 @@ class Messages():
         if self.load_more_button == None:
             self.load_more_button = MDRectangleFlatIconButton(
                 icon="message-text-clock-outline",
-                text="Load earlier messages",
+                text=tr("Load earlier messages"),
                 font_size=dp(18),
                 theme_text_color="Custom",
                 size_hint=[1.0, None],
@@ -333,7 +338,7 @@ class Messages():
                         txstr = time.strftime(ts_format, time.localtime(msg["sent"]))
                         titlestr = ""
                         prgstr = ""
-                        sphrase = "Sending"
+                        sphrase = tr("Sending")
                         prg = self.app.sideband.get_lxm_progress(msg["hash"])
                         if not hasattr(w, "last_prg_update"):
                             w.last_prg_update = time.time()
@@ -349,42 +354,42 @@ class Messages():
                                 speed = (bd/td)*8
 
                         if prg != None:
-                            prgstr = ", "+str(round(prg*100, 1))+"% done"
+                            prgstr = ", "+str(round(prg*100, 1))+tr("% done")
                             if prg <= 0.00:
                                 stamp_cost = self.app.sideband.get_lxm_stamp_cost(msg["hash"])
                                 prop_cost  = self.app.sideband.get_lxm_propagation_cost(msg["hash"])
                                 if stamp_cost and prop_cost:
-                                    sphrase = f"Generating stamps with cost {stamp_cost} and {prop_cost}"
+                                    sphrase = tr('Generating stamps with cost {stamp_cost} and {prop_cost}', stamp_cost=stamp_cost, prop_cost=prop_cost)
                                     prgstr = ""
                                 elif stamp_cost:
-                                    sphrase = f"Generating stamp with cost {stamp_cost}"
+                                    sphrase = tr('Generating stamp with cost {stamp_cost}', stamp_cost=stamp_cost)
                                     prgstr = ""
                                 elif prop_cost:
-                                    sphrase = f"Generating PN stamp with cost {prop_cost}"
+                                    sphrase = tr('Generating PN stamp with cost {prop_cost}', prop_cost=prop_cost)
                                     prgstr = ""
                                 else:
-                                    sphrase = "Waiting for path"
+                                    sphrase = tr("Waiting for path")
                             elif prg <= 0.01:
-                                sphrase = "Waiting for path"
+                                sphrase = tr("Waiting for path")
                             elif prg <= 0.03:
-                                sphrase = "Establishing link"
+                                sphrase = tr("Establishing link")
                             elif prg <= 0.05:
-                                sphrase = "Link established"
+                                sphrase = tr("Link established")
                             elif prg >= 0.05:
-                                sphrase = "Sending"
+                                sphrase = tr("Sending")
                                 if speed != None: prgstr += f", {RNS.prettyspeed(speed)}"
                             
                         if msg["title"]:
-                            titlestr = "[b]Title[/b] "+msg["title"].decode("utf-8")+"\n"
-                        w.heading = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] "+sphrase+prgstr+"                          "
+                            titlestr = tr("[b]Title[/b] ")+msg["title"].decode("utf-8")+"\n"
+                        w.heading = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] ")+sphrase+prgstr+"                          "
                         if w.has_audio:
                             alstr = RNS.prettysize(w.audio_size)
-                            w.heading += f"\n[b]Audio Message[/b] ({alstr})"
+                            w.heading += tr('\n[b]Audio Message[/b] ({alstr})', alstr=alstr)
                         m["state"] = msg["state"]
 
                     att_heading_str = ""
                     if hasattr(w, "has_attachment") and w.has_attachment:
-                        att_heading_str = "\n[b]Attachments[/b] "
+                        att_heading_str = tr("\n[b]Attachments[/b] ")
                         for attachment in w.attachments_field:
                             att_heading_str += str(attachment[0])+", "
                         att_heading_str = att_heading_str[:-2]
@@ -394,11 +399,11 @@ class Messages():
                         txstr = time.strftime(ts_format, time.localtime(msg["sent"]))
                         titlestr = ""
                         if msg["title"]:
-                            titlestr = "[b]Title[/b] "+msg["title"].decode("utf-8")+"\n"
-                        w.heading = titlestr+"[b]Sent[/b] "+txstr+delivery_syms+"\n[b]State[/b] Delivered"
+                            titlestr = tr("[b]Title[/b] ")+msg["title"].decode("utf-8")+"\n"
+                        w.heading = titlestr+tr("[b]Sent[/b] ")+txstr+delivery_syms+tr("\n[b]State[/b] Delivered")
                         if w.has_audio:
                             alstr = RNS.prettysize(w.audio_size)
-                            w.heading += f"\n[b]Audio Message[/b] ({alstr})"
+                            w.heading += tr('\n[b]Audio Message[/b] ({alstr})', alstr=alstr)
                         m["state"] = msg["state"]
 
                     if msg["method"] == LXMF.LXMessage.PAPER:
@@ -406,8 +411,8 @@ class Messages():
                         txstr = time.strftime(ts_format, time.localtime(msg["sent"]))
                         titlestr = ""
                         if msg["title"]:
-                            titlestr = "[b]Title[/b] "+msg["title"].decode("utf-8")+"\n"
-                        w.heading = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] Paper Message"
+                            titlestr = tr("[b]Title[/b] ")+msg["title"].decode("utf-8")+"\n"
+                        w.heading = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] Paper Message")
                         m["state"] = msg["state"]
 
                     if msg["method"] == LXMF.LXMessage.PROPAGATED and msg["state"] == LXMF.LXMessage.SENT:
@@ -415,11 +420,11 @@ class Messages():
                         txstr = time.strftime(ts_format, time.localtime(msg["sent"]))
                         titlestr = ""
                         if msg["title"]:
-                            titlestr = "[b]Title[/b] "+msg["title"].decode("utf-8")+"\n"
-                        w.heading = titlestr+"[b]Sent[/b] "+txstr+delivery_syms+"\n[b]State[/b] On Propagation Net"
+                            titlestr = tr("[b]Title[/b] ")+msg["title"].decode("utf-8")+"\n"
+                        w.heading = titlestr+tr("[b]Sent[/b] ")+txstr+delivery_syms+tr("\n[b]State[/b] On Propagation Net")
                         if w.has_audio:
                             alstr = RNS.prettysize(w.audio_size)
-                            w.heading += f"\n[b]Audio Message[/b] ({alstr})"
+                            w.heading += tr('\n[b]Audio Message[/b] ({alstr})', alstr=alstr)
                         m["state"] = msg["state"]
 
                     if msg["state"] == LXMF.LXMessage.FAILED:
@@ -427,12 +432,12 @@ class Messages():
                         txstr = time.strftime(ts_format, time.localtime(msg["sent"]))
                         titlestr = ""
                         if msg["title"]:
-                            titlestr = "[b]Title[/b] "+msg["title"].decode("utf-8")+"\n"
-                        w.heading = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] Failed"
+                            titlestr = tr("[b]Title[/b] ")+msg["title"].decode("utf-8")+"\n"
+                        w.heading = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] Failed")
                         m["state"] = msg["state"]
                         if w.has_audio:
                             alstr = RNS.prettysize(w.audio_size)
-                            w.heading += f"\n[b]Audio Message[/b] ({alstr})"
+                            w.heading += tr('\n[b]Audio Message[/b] ({alstr})', alstr=alstr)
                         w.dmenu.items.append(w.dmenu.retry_item)
 
                     if msg["state"] == LXMF.LXMessage.CANCELLED:
@@ -440,12 +445,12 @@ class Messages():
                         txstr = time.strftime(ts_format, time.localtime(msg["sent"]))
                         titlestr = ""
                         if msg["title"]:
-                            titlestr = "[b]Title[/b] "+msg["title"].decode("utf-8")+"\n"
-                        w.heading = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] Cancelled"
+                            titlestr = tr("[b]Title[/b] ")+msg["title"].decode("utf-8")+"\n"
+                        w.heading = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] Cancelled")
                         m["state"] = msg["state"]
                         if w.has_audio:
                             alstr = RNS.prettysize(w.audio_size)
-                            w.heading += f"\n[b]Audio Message[/b] ({alstr})"
+                            w.heading += tr('\n[b]Audio Message[/b] ({alstr})', alstr=alstr)
                         w.dmenu.items.append(w.dmenu.retry_item)
 
                     if msg["state"] == LXMF.LXMessage.REJECTED:
@@ -453,12 +458,12 @@ class Messages():
                         txstr = time.strftime(ts_format, time.localtime(msg["sent"]))
                         titlestr = ""
                         if msg["title"]:
-                            titlestr = "[b]Title[/b] "+msg["title"].decode("utf-8")+"\n"
-                        w.heading = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] Rejected"
+                            titlestr = tr("[b]Title[/b] ")+msg["title"].decode("utf-8")+"\n"
+                        w.heading = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] Rejected")
                         m["state"] = msg["state"]
                         if w.has_audio:
                             alstr = RNS.prettysize(w.audio_size)
-                            w.heading += f"\n[b]Audio Message[/b] ({alstr})"
+                            w.heading += tr('\n[b]Audio Message[/b] ({alstr})', alstr=alstr)
                         w.dmenu.items.append(w.dmenu.retry_item)
 
                     w.heading += att_heading_str
@@ -552,7 +557,7 @@ class Messages():
 
                 if message_input.strip() == b"":
                     if not ("lxm" in m and m["lxm"] != None and m["lxm"].fields != None and LXMF.FIELD_COMMANDS in m["lxm"].fields):
-                        message_input = "[i]This message contains no text content[/i]".encode("utf-8")
+                        message_input = tr("[i]This message contains no text content[/i]").encode("utf-8")
 
                 # Add clickable URL refs before multilingual font markup is applied
                 message_text_for_markup = message_input.decode("utf-8")
@@ -655,11 +660,11 @@ class Messages():
                     if "euclidian" in d:
                         edst = d["euclidian"]
                         if edst != None:
-                            rcvd_d_str = "\n[b]Distance[/b] "+RNS.prettydistance(edst)
+                            rcvd_d_str = tr("\n[b]Distance[/b] ")+RNS.prettydistance(edst)
                     elif "geodesic" in d:
                         gdst = d["geodesic"]
                         if gdst != None:
-                            rcvd_d_str = "\n[b]Distance[/b] "+RNS.prettydistance(gdst) + " (geodesic)"
+                            rcvd_d_str = tr("\n[b]Distance[/b] ")+RNS.prettydistance(gdst) + tr(" (geodesic)")
 
                 phy_stats_str = ""
                 if "extras" in m and m["extras"] != None:
@@ -667,7 +672,7 @@ class Messages():
                     if "q" in phy_stats:
                         try:
                             lq = round(float(phy_stats["q"]), 1)
-                            phy_stats_str += "[b]Link Quality[/b] "+str(lq)+"% "
+                            phy_stats_str += tr("[b]Link Quality[/b] ")+str(lq)+"% "
                             extra_telemetry["quality"] = lq
                         except:
                             pass
@@ -687,40 +692,40 @@ class Messages():
                             pass
 
                 if m["title"]:
-                    titlestr = "[b]Title[/b] "+m["title"].decode("utf-8")+"\n"
+                    titlestr = tr("[b]Title[/b] ")+m["title"].decode("utf-8")+"\n"
 
                 if m["source"] == self.app.sideband.lxmf_destination.hash:
                     if m["state"] == LXMF.LXMessage.DELIVERED:
                         msg_color = mdc(c_delivered, intensity_delivered)
-                        heading_str = titlestr+"[b]Sent[/b] "+txstr+delivery_syms+"\n[b]State[/b] Delivered"
+                        heading_str = titlestr+tr("[b]Sent[/b] ")+txstr+delivery_syms+tr("\n[b]State[/b] Delivered")
 
                     elif m["method"] == LXMF.LXMessage.PROPAGATED and m["state"] == LXMF.LXMessage.SENT:
                         msg_color = mdc(c_propagated, intensity_msgs)
-                        heading_str = titlestr+"[b]Sent[/b] "+txstr+delivery_syms+"\n[b]State[/b] On Propagation Net"
+                        heading_str = titlestr+tr("[b]Sent[/b] ")+txstr+delivery_syms+tr("\n[b]State[/b] On Propagation Net")
 
                     elif m["method"] == LXMF.LXMessage.PAPER:
                         msg_color = mdc(c_paper, intensity_msgs)
-                        heading_str = titlestr+"[b]Created[/b] "+txstr+"\n[b]State[/b] Paper Message"
+                        heading_str = titlestr+tr("[b]Created[/b] ")+txstr+tr("\n[b]State[/b] Paper Message")
 
                     elif m["state"] == LXMF.LXMessage.FAILED:
                         msg_color = mdc(c_failed, intensity_cancelled)
-                        heading_str = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] Failed"
+                        heading_str = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] Failed")
 
                     elif m["state"] == LXMF.LXMessage.CANCELLED:
                         msg_color = mdc(c_cancelled, intensity_cancelled)
-                        heading_str = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] Cancelled"
+                        heading_str = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] Cancelled")
 
                     elif m["state"] == LXMF.LXMessage.REJECTED:
                         msg_color = mdc(c_cancelled, intensity_cancelled)
-                        heading_str = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] Rejected"
+                        heading_str = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] Rejected")
 
                     elif m["state"] == LXMF.LXMessage.OUTBOUND or m["state"] == LXMF.LXMessage.SENDING:
                         msg_color = mdc(c_unknown, intensity_msgs)
-                        heading_str = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] Sending                          "
+                        heading_str = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] Sending                          ")
 
                     else:
                         msg_color = mdc(c_unknown, intensity_msgs)
-                        heading_str = titlestr+"[b]Sent[/b] "+txstr+"\n[b]State[/b] Unknown"
+                        heading_str = titlestr+tr("[b]Sent[/b] ")+txstr+tr("\n[b]State[/b] Unknown")
 
                 else:
                     msg_color = mdc(c_received, intensity_msgs)
@@ -728,8 +733,8 @@ class Messages():
                     if phy_stats_str != "" and self.app.sideband.config["advanced_stats"]:
                         heading_str += phy_stats_str+"\n"
 
-                    heading_str += "[b]Sent[/b] "+txstr+delivery_syms
-                    heading_str += "\n[b]Received[/b] "+rxstr
+                    heading_str += tr("[b]Sent[/b] ")+txstr+delivery_syms
+                    heading_str += tr("\n[b]Received[/b] ")+rxstr
 
                     if rcvd_d_str != "":
                         heading_str += rcvd_d_str
@@ -741,22 +746,22 @@ class Messages():
                         identity_known = True
 
                     if identity_known == True:
-                        pre_content += "[b]Warning![/b] The signature for this message could not be validated. [b]This message is likely to be fake[/b].\n\n"
+                        pre_content += tr("[b]Warning![/b] The signature for this message could not be validated. [b]This message is likely to be fake[/b].\n\n")
                         force_markup = True
 
                 if has_attachment:
-                    heading_str += "\n[b]Attachments[/b] "
+                    heading_str += tr("\n[b]Attachments[/b] ")
                     for attachment in attachments_field:
                         heading_str += str(attachment[0])+", "
                     heading_str = heading_str[:-2]
 
                 if has_audio:
                     alstr = RNS.prettysize(len(audio_field[1]))
-                    heading_str += f"\n[b]Audio Message[/b] ({alstr})"
+                    heading_str += tr('\n[b]Audio Message[/b] ({alstr})', alstr=alstr)
 
                 final_content = pre_content+message_markup.decode("utf-8")+extra_content
                 if len(final_content) > MSG_RENDER_LIMIT:
-                    final_content = pre_content+"[i]The content of this message is too large to display in the message stream. You can copy the message content into another program by using the context menu of this message, and selecting [b]Copy[/b].[/i]"+extra_content
+                    final_content = pre_content+tr("[i]The content of this message is too large to display in the message stream. You can copy the message content into another program by using the context menu of this message, and selecting [b]Copy[/b].[/i]")+extra_content
                 item = ListLXMessageCard(
                     text=final_content,
                     heading=heading_str,
@@ -820,7 +825,7 @@ class Messages():
                 def check_textures(w, val):
                     try:
                         if w.texture_size[0] > 360 and w.texture_size[1] >= self.max_texture_size:
-                            w.text = "[i]The content of this message is too large to display in the message stream. You can copy the message content into another program by using the context menu of this message, and selecting [b]Copy[/b].[/i]"
+                            w.text = tr("[i]The content of this message is too large to display in the message stream. You can copy the message content into another program by using the context menu of this message, and selecting [b]Copy[/b].[/i]")
 
                         if w.owner.has_image:
                             img = w.owner.ids.message_image
@@ -844,7 +849,7 @@ class Messages():
                             w.markup = False
                             escaped_content = escape_markup(w.text)
                             def deferred(dt):
-                                w.text = "[i]This message could not be rendered correctly, likely due to an error in its markup. Falling back to plain-text rendering.[/i]\n\n"+escaped_content
+                                w.text = tr("[i]This message could not be rendered correctly, likely due to an error in its markup. Falling back to plain-text rendering.[/i]\n\n")+escaped_content
                                 w.markup = True
                             Clock.schedule_once(deferred, 0.1)
                     return x
@@ -865,10 +870,10 @@ class Messages():
 
                 def gen_del(mhash, item):
                     def x():
-                        yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
-                        no_button = MDRectangleFlatButton(text="No",font_size=dp(18))
+                        yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
+                        no_button = MDRectangleFlatButton(text=tr("No"),font_size=dp(18))
                         dialog = MDDialog(
-                            title="Delete message?",
+                            title=tr("Delete message?"),
                             buttons=[ yes_button, no_button ],
                             # elevation=0,
                         )
@@ -951,10 +956,10 @@ class Messages():
 
                                 item.dmenu.dismiss()
 
-                                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                                ok_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
                                 dialog = MDDialog(
-                                    title="Image Saved",
-                                    text="The image has been saved to: "+save_path+"",
+                                    title=tr("Image Saved"),
+                                    text=tr("The image has been saved to: ")+save_path+"",
                                     buttons=[ ok_button ],
                                     # elevation=0,
                                 )
@@ -966,10 +971,10 @@ class Messages():
 
                             except Exception as e:
                                 item.dmenu.dismiss()
-                                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                                ok_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
                                 dialog = MDDialog(
-                                    title="Error",
-                                    text="Could not save the image:\n\n"+save_path+"\n\n"+str(e),
+                                    title=tr("Error"),
+                                    text=tr("Could not save the image:\n\n")+save_path+"\n\n"+str(e),
                                     buttons=[ ok_button ],
                                     # elevation=0,
                                 )
@@ -994,11 +999,11 @@ class Messages():
                                     output_path = plyer.storagepath.get_downloads_dir()+"/"
 
                                 if len(attachments_field) == 1:
-                                    saved_text = "The attached file has been saved to: "+output_path
-                                    saved_title = "Attachment Saved"
+                                    saved_text = tr("The attached file has been saved to: ")+output_path
+                                    saved_title = tr("Attachment Saved")
                                 else:
-                                    saved_text = "The attached files have been saved to: "+output_path
-                                    saved_title = "Attachment Saved"
+                                    saved_text = tr("The attached files have been saved to: ")+output_path
+                                    saved_title = tr("Attachment Saved")
 
                                 for attachment in attachments_field:
                                     filename = str(attachment[0]).replace("../", "").replace("..\\", "")
@@ -1013,14 +1018,14 @@ class Messages():
                                         save_path = str(pre_count)+"."+str(name_counter)
                                         name_counter += 1
 
-                                    saved_text = "The attached file has been saved to: "+save_path
+                                    saved_text = tr("The attached file has been saved to: ")+save_path
 
                                     with open(save_path, "wb") as save_file:
                                         save_file.write(attachment[1])
 
                                 item.dmenu.dismiss()
 
-                                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                                ok_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
                                 dialog = MDDialog(
                                     title=saved_title,
                                     text=saved_text,
@@ -1035,10 +1040,10 @@ class Messages():
 
                             except Exception as e:
                                 item.dmenu.dismiss()
-                                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                                ok_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
                                 dialog = MDDialog(
-                                    title="Error",
-                                    text="Could not save the attachment:\n\n"+save_path+"\n\n"+str(e),
+                                    title=tr("Error"),
+                                    text=tr("Could not save the attachment:\n\n")+save_path+"\n\n"+str(e),
                                     buttons=[ ok_button ],
                                     # elevation=0,
                                 )
@@ -1069,7 +1074,7 @@ class Messages():
                             item.dmenu.dismiss()
                         except Exception as e:
                             RNS.log("An error occurred while decoding telemetry. The contained exception was: "+str(e), RNS.LOG_ERROR)
-                            Clipboard.copy("Could not decode telemetry")
+                            Clipboard.copy(tr("Could not decode telemetry"))
 
                     return x
 
@@ -1105,10 +1110,10 @@ class Messages():
                                 qr_image.save(save_path)
                                 item.dmenu.dismiss()
 
-                                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                                ok_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
                                 dialog = MDDialog(
-                                    title="QR Code Saved",
-                                    text="The paper message has been saved to: "+save_path+"",
+                                    title=tr("QR Code Saved"),
+                                    text=tr("The paper message has been saved to: ")+save_path+"",
                                     buttons=[ ok_button ],
                                     # elevation=0,
                                 )
@@ -1120,10 +1125,10 @@ class Messages():
 
                             except Exception as e:
                                 item.dmenu.dismiss()
-                                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                                ok_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
                                 dialog = MDDialog(
-                                    title="Error",
-                                    text="Could not save the paper message QR-code to:\n\n"+save_path+"\n\n"+str(e),
+                                    title=tr("Error"),
+                                    text=tr("Could not save the paper message QR-code to:\n\n")+save_path+"\n\n"+str(e),
                                     buttons=[ ok_button ],
                                     # elevation=0,
                                 )
@@ -1157,10 +1162,10 @@ class Messages():
 
                             except Exception as e:
                                 item.dmenu.dismiss()
-                                ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+                                ok_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
                                 dialog = MDDialog(
-                                    title="Error",
-                                    text="Could not print the paper message QR-code.\n\n"+str(e),
+                                    title=tr("Error"),
+                                    text=tr("Could not print the paper message QR-code.\n\n")+str(e),
                                     buttons=[ ok_button ],
                                     # elevation=0,
                                 )
@@ -1174,42 +1179,42 @@ class Messages():
 
                 retry_item = {
                     "viewclass": "OneLineListItem",
-                    "text": "Retry",
+                    "text": tr("Retry"),
                     "height": dp(40),
                     "on_release": gen_retry(m["hash"], m["content"], item)
                 }
 
                 details_item = {
                     "viewclass": "OneLineListItem",
-                    "text": "Details",
+                    "text": tr("Details"),
                     "height": dp(40),
                     "on_release": gen_details(m["hash"], item)
                 }
 
                 if m["method"] == LXMF.LXMessage.PAPER:
                     if RNS.vendor.platformutils.is_android():
-                        qr_save_text = "Share QR Code"
+                        qr_save_text = tr("Share QR Code")
                         dm_items = [
                             {
                                 "viewclass": "OneLineListItem",
-                                "text": "Share QR Code",
+                                "text": tr("Share QR Code"),
                                 "height": dp(40),
                                 "on_release": gen_save_qr(m["lxm"], item)
                             },
                             {
                                 "viewclass": "OneLineListItem",
-                                "text": "Copy LXM URI",
+                                "text": tr("Copy LXM URI"),
                                 "height": dp(40),
                                 "on_release": gen_copy_lxm_uri(m["lxm"], item)
                             },
                             {
                                 "viewclass": "OneLineListItem",
-                                "text": "Copy message text",
+                                "text": tr("Copy message text"),
                                 "height": dp(40),
                                 "on_release": gen_copy(message_source.decode("utf-8"), item)
                             },
                             {
-                                "text": "Delete",
+                                "text": tr("Delete"),
                                 "viewclass": "OneLineListItem",
                                 "height": dp(40),
                                 "on_release": gen_del(m["hash"], item)
@@ -1220,30 +1225,30 @@ class Messages():
                         dm_items = [
                             {
                                 "viewclass": "OneLineListItem",
-                                "text": "Print QR Code",
+                                "text": tr("Print QR Code"),
                                 "height": dp(40),
                                 "on_release": gen_print_qr(m["lxm"], item)
                             },
                             {
                                 "viewclass": "OneLineListItem",
-                                "text": "Save QR Code",
+                                "text": tr("Save QR Code"),
                                 "height": dp(40),
                                 "on_release": gen_save_qr(m["lxm"], item)
                             },
                             {
                                 "viewclass": "OneLineListItem",
-                                "text": "Copy LXM URI",
+                                "text": tr("Copy LXM URI"),
                                 "height": dp(40),
                                 "on_release": gen_copy_lxm_uri(m["lxm"], item)
                             },
                             {
                                 "viewclass": "OneLineListItem",
-                                "text": "Copy message text",
+                                "text": tr("Copy message text"),
                                 "height": dp(40),
                                 "on_release": gen_copy(message_source.decode("utf-8"), item)
                             },
                             {
-                                "text": "Delete",
+                                "text": tr("Delete"),
                                 "viewclass": "OneLineListItem",
                                 "height": dp(40),
                                 "on_release": gen_del(m["hash"], item)
@@ -1256,12 +1261,12 @@ class Messages():
                             retry_item,
                             {
                                 "viewclass": "OneLineListItem",
-                                "text": "Copy",
+                                "text": tr("Copy"),
                                 "height": dp(40),
                                 "on_release": gen_copy(message_source.decode("utf-8"), item)
                             },
                             {
-                                "text": "Delete",
+                                "text": tr("Delete"),
                                 "viewclass": "OneLineListItem",
                                 "height": dp(40),
                                 "on_release": gen_del(m["hash"], item)
@@ -1273,18 +1278,18 @@ class Messages():
                                 details_item,
                                 {
                                     "viewclass": "OneLineListItem",
-                                    "text": "Copy",
+                                    "text": tr("Copy"),
                                     "height": dp(40),
                                     "on_release": gen_copy(message_source.decode("utf-8"), item)
                                 },
                                 {
                                     "viewclass": "OneLineListItem",
-                                    "text": "Copy telemetry",
+                                    "text": tr("Copy telemetry"),
                                     "height": dp(40),
                                     "on_release": gen_copy_telemetry(telemeter, extra_telemetry, item)
                                 },
                                 {
-                                    "text": "Delete",
+                                    "text": tr("Delete"),
                                     "viewclass": "OneLineListItem",
                                     "height": dp(40),
                                     "on_release": gen_del(m["hash"], item)
@@ -1296,12 +1301,12 @@ class Messages():
                                 details_item,
                                 {
                                     "viewclass": "OneLineListItem",
-                                    "text": "Copy",
+                                    "text": tr("Copy"),
                                     "height": dp(40),
                                     "on_release": gen_copy(message_source.decode("utf-8"), item)
                                 },
                                 {
-                                    "text": "Delete",
+                                    "text": tr("Delete"),
                                     "viewclass": "OneLineListItem",
                                     "height": dp(40),
                                     "on_release": gen_del(m["hash"], item)
@@ -1310,7 +1315,7 @@ class Messages():
                         if has_image:
                             extra_item = {
                                 "viewclass": "OneLineListItem",
-                                "text": "Save image",
+                                "text": tr("Save image"),
                                 "height": dp(40),
                                 "on_release": gen_save_image(item)
                             }
@@ -1318,7 +1323,7 @@ class Messages():
                         if has_attachment:
                             extra_item = {
                                 "viewclass": "OneLineListItem",
-                                "text": "Save attachment",
+                                "text": tr("Save attachment"),
                                 "height": dp(40),
                                 "on_release": gen_save_attachment(item)
                             }
@@ -1326,7 +1331,7 @@ class Messages():
                         if m["source"] == self.app.sideband.lxmf_destination.hash and m["state"] <= LXMF.LXMessage.SENT:
                             extra_item = {
                                 "viewclass": "OneLineListItem",
-                                "text": "Cancel message",
+                                "text": tr("Cancel message"),
                                 "height": dp(40),
                                 "on_release": gen_cancel(m["hash"], item)
                             }

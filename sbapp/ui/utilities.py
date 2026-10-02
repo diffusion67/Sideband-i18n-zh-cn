@@ -1,6 +1,11 @@
 import time
 import RNS
 
+if RNS.vendor.platformutils.get_platform() == "android":
+    from i18n import translate as tr
+else:
+    from sbapp.i18n import translate as tr
+
 from typing import Union
 from kivy.metrics import dp,sp
 from kivy.lang.builder import Builder
@@ -21,10 +26,10 @@ import threading
 from datetime import datetime
 
 if RNS.vendor.platformutils.get_platform() == "android":
-    from ui.helpers import ts_format
+    from ui.helpers import ts_format, multilingual_markup
     from android.permissions import request_permissions, check_permission
 else:
-    from .helpers import ts_format
+    from .helpers import ts_format, multilingual_markup
 
 class Utilities():
     def __init__(self, app):
@@ -41,8 +46,8 @@ class Utilities():
             self.app.root.ids.screen_manager.add_widget(self.screen)
         
         self.screen.ids.utilities_scrollview.effect_cls = ScrollEffect
-        info  = "This section contains various utilities and diagnostics tools, "
-        info += "that can be helpful while using Sideband and Reticulum."
+        info  = tr("This section contains various utilities and diagnostics tools, ")
+        info += tr("that can be helpful while using Sideband and Reticulum.")
         
         if self.app.theme_cls.theme_style == "Dark":
             info = "[color=#"+self.app.dark_theme_text_color+"]"+info+"[/color]"
@@ -54,11 +59,11 @@ class Utilities():
     ######################################
 
     def flasher_action(self, sender=None):
-        yes_button = MDRectangleFlatButton(text="Launch",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_accept, text_color=self.app.color_accept)
-        no_button = MDRectangleFlatButton(text="Back",font_size=dp(18))
+        yes_button = MDRectangleFlatButton(text=tr("Launch"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_accept, text_color=self.app.color_accept)
+        no_button = MDRectangleFlatButton(text=tr("Back"),font_size=dp(18))
         dialog = MDDialog(
-            title="RNode Flasher",
-            text="You can use the included web-based RNode flasher, by starting Sideband's built-in repository server, and accessing the RNode Flasher page.",
+            title=tr("RNode Flasher"),
+            text=tr("You can use the included web-based RNode flasher, by starting Sideband's built-in repository server, and accessing the RNode Flasher page."),
             buttons=[ no_button, yes_button ],
             # elevation=0,
         )
@@ -109,14 +114,14 @@ class Utilities():
 
         import io
         from contextlib import redirect_stdout
-        output = "None"
+        output = tr("None")
         with io.StringIO() as buffer, redirect_stdout(buffer):
             with RNS.logging_lock:
                 self.rnstatus_instance.main(rns_instance=RNS.Reticulum.get_instance())
                 output = buffer.getvalue()
 
         def cb(dt):
-            self.rnstatus_screen.ids.rnstatus_output.text = f"[font=RobotoMono-Regular][size={int(dp(12))}]{output}[/size][/font]"
+            self.rnstatus_screen.ids.rnstatus_output.text = multilingual_markup((f"[font=RobotoMono-Regular][size={int(dp(12))}]{output}[/size][/font]").encode("utf-8")).decode("utf-8")
         Clock.schedule_once(cb, 0.2)
 
         if self.app.root.ids.screen_manager.current == "rnstatus_screen":
@@ -143,9 +148,9 @@ class Utilities():
             ct = self.app.sideband.config["config_template"]
             if ct == None:
                 ct = self.app.sideband.default_config_template
-            self.advanced_screen.ids.config_template.text = f"[font=RobotoMono-Regular][size={int(dp(12))}]{ct}[/size][/font]"
+            self.advanced_screen.ids.config_template.text = multilingual_markup((f"[font=RobotoMono-Regular][size={int(dp(12))}]{ct}[/size][/font]").encode("utf-8")).decode("utf-8")
         else:
-            self.advanced_screen.ids.config_template.text = f"[font=RobotoMono-Regular][size={int(dp(12))}]On this platform, Reticulum configuration is managed by the system. You can change the configuration by editing the file located at:\n\n{self.app.sideband.reticulum.configpath}[/size][/font]"
+            self.advanced_screen.ids.config_template.text = multilingual_markup((tr('[font=RobotoMono-Regular][size={value1}]On this platform, Reticulum configuration is managed by the system. You can change the configuration by editing the file located at:\n\n{value2}[/size][/font]', value1=int(dp(12)), value2=self.app.sideband.reticulum.configpath)).encode("utf-8")).decode("utf-8")
 
     def reset_config(self, sender=None):
         if RNS.vendor.platformutils.is_android():
@@ -188,21 +193,21 @@ class Utilities():
 
     def update_logviewer_job(self, sender=None):
         try: output = self.app.sideband.get_log()
-        except Exception as e: output = f"An error occurred while retrieving log entries:\n{e}"
+        except Exception as e: output = tr('An error occurred while retrieving log entries:\n{e}', e=e)
 
         if not RNS.vendor.platformutils.is_android(): service_output = None
         else:
             try: service_output = self.app.sideband.get_service_log()
-            except Exception as e: service_output = f"An error occurred while retrieving log entries:\n{e}"
+            except Exception as e: service_output = tr('An error occurred while retrieving log entries:\n{e}', e=e)
 
 
         self.logviewer_screen.log_contents = output
         def cb(dt):
             if not RNS.vendor.platformutils.is_android():
-                self.logviewer_screen.ids.logviewer_output.text  = f"[font=RobotoMono-Regular][size={int(dp(12))}]{output}[/size][/font]"
+                self.logviewer_screen.ids.logviewer_output.text  = multilingual_markup((f"[font=RobotoMono-Regular][size={int(dp(12))}]{output}[/size][/font]").encode("utf-8")).decode("utf-8")
             else:
-                self.logviewer_screen.ids.logviewer_output.text   = f"[size=18dp][b]Frontend Log[/b][/size][size=5dp]\n \n[font=RobotoMono-Regular][size={int(dp(12))}]{output}[/size][/font]"
-                self.logviewer_screen.ids.slogviewer_output.text  = f"\n[size=18dp][b]Service Log[/b][/size][size=5dp]\n \n[font=RobotoMono-Regular][size={int(dp(12))}]{service_output}[/size][/font]"
+                self.logviewer_screen.ids.logviewer_output.text   = multilingual_markup((tr('[size=18dp][b]Frontend Log[/b][/size][size=5dp]\n \n[font=RobotoMono-Regular][size={value1}]{output}[/size][/font]', value1=int(dp(12)), output=output)).encode("utf-8")).decode("utf-8")
+                self.logviewer_screen.ids.slogviewer_output.text  = multilingual_markup((tr('\n[size=18dp][b]Service Log[/b][/size][size=5dp]\n \n[font=RobotoMono-Regular][size={value1}]{service_output}[/size][/font]', value1=int(dp(12)), service_output=service_output)).encode("utf-8")).decode("utf-8")
                 self.logviewer_screen.log_contents               += f"\n\n{service_output}"
         Clock.schedule_once(cb, 0.2)
 
@@ -212,7 +217,7 @@ class Utilities():
     def logviewer_copy(self, sender=None):
         Clipboard.copy(self.logviewer_screen.log_contents)
         if True or RNS.vendor.platformutils.is_android():
-            toast("Log copied to clipboard")
+            toast(tr("Log copied to clipboard"))
 
 
 layout_utilities_screen = """

@@ -1,6 +1,11 @@
 import time
 import RNS
 
+if RNS.vendor.platformutils.get_platform() == "android":
+    from i18n import translate as tr
+else:
+    from sbapp.i18n import translate as tr
+
 from typing import Union
 from kivy.metrics import dp,sp
 from kivy.lang.builder import Builder
@@ -36,6 +41,22 @@ else:
     from .helpers import multilingual_markup
 
 from LXST.Primitives.Telephony import Telephone, Profiles
+
+def _profile_display_name(name):
+    """Translate known profile descriptions, leaving IDs and abbreviations intact."""
+    names = {
+        "Ultra Low Bandwidth": tr("Ultra Low Bandwidth"),
+        "Very Low Bandwidth": tr("Very Low Bandwidth"),
+        "Low Bandwidth": tr("Low Bandwidth"),
+        "Medium Quality": tr("Medium Quality"),
+        "High Quality": tr("High Quality"),
+        "Super High Quality": tr("Super High Quality"),
+        "Low Latency": tr("Low Latency"),
+        "Ultra Low Latency": tr("Ultra Low Latency"),
+        "Default": tr("Default"),
+    }
+    return names.get(name, name)
+
 
 class Voice():
     def __init__(self, app):
@@ -98,7 +119,7 @@ class Voice():
                     db.disabled = False
                     if telephone.call_is_connecting: pb.disabled = True
                     if telephone.is_in_call:         pb.disabled = False
-                    db.text = "Hang up"
+                    db.text = tr("Hang up")
                     db.icon = "phone-hangup"
                     if telephone.active_profile: self.call_profile = telephone.active_profile
 
@@ -107,17 +128,17 @@ class Voice():
                     rb.disabled = False
                     db.disabled = False
                     pb.disabled = True
-                    db.text = "Answer"
+                    db.text = tr("Answer")
                     db.icon = "phone-ring"
                     if telephone.caller: ih.text = RNS.hexrep(telephone.caller.hash, delimit=False)
                     if telephone.active_profile: self.call_profile = telephone.active_profile
 
             if self.app.sideband.getstate("voice.connection_failure"):
                 self.app.sideband.setstate("voice.connection_failure", False)
-                toast("Could not connect call", duration=5)
+                toast(tr("Could not connect call"), duration=5)
 
         else:
-            db.disabled = True; db.text = "Voice calls disabled"
+            db.disabled = True; db.text = tr("Voice calls disabled")
             ih.disabled = True
             rb.disabled = True
             pb.disabled = True
@@ -129,13 +150,13 @@ class Voice():
     def target_valid(self):
         if self.app.sideband.voice_running:
             db = self.screen.ids.dial_button
-            db.disabled = False; db.text = "Call"
+            db.disabled = False; db.text = tr("Call")
             db.icon = "phone-outgoing"
 
     def target_invalid(self):
         if self.app.sideband.voice_running:
             db = self.screen.ids.dial_button
-            db.disabled = True; db.text = "Call"
+            db.disabled = True; db.text = tr("Call")
             db.icon = "phone-outgoing"
 
     def target_input_action(self, sender):
@@ -153,14 +174,14 @@ class Voice():
     def request_path(self, destination_hash):
         if not self.path_requesting:
             self.app.sideband.telephone.set_busy(True)
-            toast("Requesting path...")
+            toast(tr("Requesting path..."))
             self.screen.ids.dial_button.disabled = True
             self.path_requesting = destination_hash
             RNS.Transport.request_path(destination_hash)
             threading.Thread(target=self._path_wait_job, daemon=True).start()
         
         else:
-            toast("Waiting for path request answer...")
+            toast(tr("Waiting for path request answer..."))
 
     def _path_wait_job(self):
         timeout = time.time()+self.app.sideband.telephone.PATH_TIME
@@ -181,7 +202,7 @@ class Voice():
         self.update_call_status()
 
     def _path_request_failed(self, dt):
-        toast("Path request timed out")
+        toast(tr("Path request timed out"))
 
     def call_profile_action(self, sender=None):
         if self.app.sideband.telephone.is_in_call: self.switch_profile_action()
@@ -189,7 +210,7 @@ class Voice():
             pb = self.screen.ids.call_profile_button
             self.call_profile = Profiles.next_profile(self.call_profile)
             pb.text = Profiles.profile_abbrevation(self.call_profile)
-            toast(f"Call Profile: {Profiles.profile_name(self.call_profile)}")
+            toast(tr('Call Profile: {value1}', value1=_profile_display_name(Profiles.profile_name(self.call_profile))))
 
     def switch_profile_action(self, sender=None):
         if self.initial_call_profile == None: self.initial_call_profile = self.call_profile
@@ -213,7 +234,7 @@ class Voice():
             if sender and self.app.sideband.voice_running and self.app.sideband.telephone != None:
                 telephone = self.app.sideband.telephone
                 if not telephone.is_ringing and not telephone.is_in_call and not telephone.call_is_connecting:
-                    call_dialog_text = f"[b]Initiate Voice Call?[/b]\n\nDestination Identity:\n{RNS.prettyhexrep(sender.identity)}"
+                    call_dialog_text = tr('[b]Initiate Voice Call?[/b]\n\nDestination Identity:\n{value1}', value1=RNS.prettyhexrep(sender.identity))
                     if hasattr(self.app, "confirm_call_dialog"): self.app.confirm_call_dialog.text = call_dialog_text
                     else: self.app.init_confirm_call_dialog(call_dialog_text)
                     self.app.confirm_call_dialog.dest_identity_hash = sender.identity
@@ -294,7 +315,7 @@ class Voice():
 
         # Output devices
         if not "system_default" in self.listed_output_devices:
-            default_output_button = MDRectangleFlatIconButton(text="System Default", font_size=dp(fs), icon_size=dp(ics), on_release=self.output_device_action)
+            default_output_button = MDRectangleFlatIconButton(text=tr("System Default"), font_size=dp(fs), icon_size=dp(ics), on_release=self.output_device_action)
             default_output_button.device = None; default_output_button.size_hint = [1.0, None]
             if self.app.sideband.config["voice_output"] == None: default_output_button.icon = "check"
             self.voice_settings_screen.ids.output_devices.add_widget(default_output_button)
@@ -313,7 +334,7 @@ class Voice():
 
         # Input devices
         if not "system_default" in self.listed_input_devices:
-            default_input_button = MDRectangleFlatIconButton(text="System Default", font_size=dp(fs), icon_size=dp(ics), on_release=self.input_device_action)
+            default_input_button = MDRectangleFlatIconButton(text=tr("System Default"), font_size=dp(fs), icon_size=dp(ics), on_release=self.input_device_action)
             default_input_button.device = None; default_input_button.size_hint = [1.0, None]
             if self.app.sideband.config["voice_output"] == None: default_input_button.icon = "check"
             self.voice_settings_screen.ids.input_devices.add_widget(default_input_button)
@@ -332,7 +353,7 @@ class Voice():
 
         # Ringer devices
         if not "system_default" in self.listed_ringer_devices:
-            default_ringer_button = MDRectangleFlatIconButton(text="System Default", font_size=dp(fs), icon_size=dp(ics), on_release=self.ringer_device_action)
+            default_ringer_button = MDRectangleFlatIconButton(text=tr("System Default"), font_size=dp(fs), icon_size=dp(ics), on_release=self.ringer_device_action)
             default_ringer_button.device = None; default_ringer_button.size_hint = [1.0, None]
             if self.app.sideband.config["voice_ringer"] == None: default_ringer_button.icon = "check"
             self.voice_settings_screen.ids.ringer_devices.add_widget(default_ringer_button)
@@ -416,13 +437,13 @@ class Voice():
                     elif evt == "outgoing-success": icon = "phone-outgoing"
 
                     time_str = None
-                    if td < 60:           time_str = "Just now"
+                    if td < 60:           time_str = tr("Just now")
                     elif td < 60*60:      td = int((td//60)*60)
                     elif td < 60*60*24:   td = int((td//60)*60)
                     elif td < 60*60*24*7: td = int((td//(60*60*24))*(60*60*24))
                     else:                 time_str = time.strftime(ts_format_date, time.localtime(at))
 
-                    if time_str == None:  time_str = f"{RNS.prettytime(td)} ago"
+                    if time_str == None:  time_str = tr('{value1} ago', value1=RNS.prettytime(td).replace(" and ", tr(" and ")))
 
                     if icon:
                         info  = f"{name}  •  [i]{time_str}[/i]"

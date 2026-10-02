@@ -51,6 +51,10 @@ class BuildWorkflowTests(unittest.TestCase):
                 self.assertIn("if-no-files-found: error", text)
                 self.assertNotIn("if: always()", text)
 
+    def test_android_setup_avoids_retired_tools_package(self):
+        text = (WORKFLOWS / "build-android-apk.yml").read_text()
+        self.assertIn("packages: platform-tools", text)
+
     def test_android_installs_patchelf_and_pins_observed_tool_versions(self):
         text = (WORKFLOWS / "build-android-apk.yml").read_text()
         self.assertIn("patchelf", text)
@@ -124,6 +128,12 @@ class BuildWorkflowTests(unittest.TestCase):
             result = subprocess.run(["bash", "-e", "-c", script], cwd=root,
                                     capture_output=True)
             self.assertNotEqual(result.returncode, 0)
+
+    def test_windows_performs_runtime_startup_check(self):
+        text = (WORKFLOWS / "build-windows-zip.yml").read_text()
+        self.assertIn('name: Smoke test Windows executable', text)
+        self.assertIn('HasExited', text)
+        self.assertIn('--config', text)
 
     def test_windows_creates_real_zip_and_checks_build_failures(self):
         text = (ROOT / "winbuild.bat").read_text()

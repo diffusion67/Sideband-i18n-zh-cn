@@ -1,6 +1,11 @@
 import time
 import RNS
 
+if RNS.vendor.platformutils.get_platform() == "android":
+    from i18n import translate as tr
+else:
+    from sbapp.i18n import translate as tr
+
 import base64
 import threading
 from kivy.metrics import dp,sp
@@ -28,8 +33,8 @@ class Keys():
             self.app.bind_clipboard_actions(self.keys_screen.ids)
 
             self.keys_screen.ids.keys_scrollview.effect_cls = ScrollEffect
-            info1 = "[size=18dp][b]Encryption Keys[/b][/size][size=5dp]\n \n[/size]Your primary encryption keys are stored in a Reticulum Identity within the Sideband app. If you want to backup this Identity for later use on this or another device, you can export it as a plain text blob, with the key data encoded in Base32 format. This will allow you to restore your address in Sideband or other LXMF clients at a later point.\n\n[b]Warning![/b] Anyone that gets access to the key data will be able to control your LXMF address, impersonate you, and read your messages. It is [b]extremely important[/b] that you keep the Identity data secure if you export it.\n\nBefore displaying or exporting your Identity data, make sure that no machine or person in your vicinity is able to see, copy or record your device screen or similar."
-            info2 = "[size=18dp][b]Backup & Restore[/b][/size][size=5dp]\n \n[/size]You can backup your entire Sideband profile for import on a computer or other device. The exported backup archive will be saved in the downloads folder of your device. Please note that the exported archive contains all your messages, data and encryption keys. Take extreme care to keep this archive secure."
+            info1 = tr("[size=18dp][b]Encryption Keys[/b][/size][size=5dp]\n \n[/size]Your primary encryption keys are stored in a Reticulum Identity within the Sideband app. If you want to backup this Identity for later use on this or another device, you can export it as a plain text blob, with the key data encoded in Base32 format. This will allow you to restore your address in Sideband or other LXMF clients at a later point.\n\n[b]Warning![/b] Anyone that gets access to the key data will be able to control your LXMF address, impersonate you, and read your messages. It is [b]extremely important[/b] that you keep the Identity data secure if you export it.\n\nBefore displaying or exporting your Identity data, make sure that no machine or person in your vicinity is able to see, copy or record your device screen or similar.")
+            info2 = tr("[size=18dp][b]Backup & Restore[/b][/size][size=5dp]\n \n[/size]You can backup your entire Sideband profile for import on a computer or other device. The exported backup archive will be saved in the downloads folder of your device. Please note that the exported archive contains all your messages, data and encryption keys. Take extreme care to keep this archive secure.")
 
             if not RNS.vendor.platformutils.get_platform() == "android":
                 self.app.widget_hide(self.keys_screen.ids.keys_share)
@@ -56,9 +61,9 @@ class Keys():
         
         def job(dt):
             self.keys_screen.ids.keys_backup.disabled = False
-            toast("Backup done")
-            ok_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
-            dialog = MDDialog(text=f"Backup has been saved to {target_file}",
+            toast(tr("Backup done"))
+            ok_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
+            dialog = MDDialog(text=tr('Backup has been saved to {target_file}', target_file=target_file),
                               buttons=[ok_button])
             def dl_yes(s): dialog.dismiss()
             
@@ -69,14 +74,14 @@ class Keys():
 
     def profile_backup_action(self, sender=None):
         self.keys_screen.ids.keys_backup.disabled = True
-        toast("Creating backup...")
+        toast(tr("Creating backup..."))
         threading.Thread(target=self._profile_backup_job, daemon=True).start()
 
     def identity_display_action(self, sender=None):
-        yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
+        yes_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
 
         dialog = MDDialog(
-            text="Your Identity key, in base32 format is as follows:\n\n[b]"+str(base64.b32encode(self.app.sideband.identity.get_private_key()).decode("utf-8"))+"[/b]",
+            text=tr("Your Identity key, in base32 format is as follows:\n\n[b]")+str(base64.b32encode(self.app.sideband.identity.get_private_key()).decode("utf-8"))+"[/b]",
             buttons=[ yes_button ],
             # elevation=0,
         )
@@ -87,15 +92,15 @@ class Keys():
         dialog.open()
 
     def identity_copy_action(self, sender=None):
-        c_yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
-        c_no_button = MDRectangleFlatButton(text="No, go back",font_size=dp(18))
-        c_dialog = MDDialog(text="[b]Caution![/b]\n\nYour Identity key will be copied to the system clipboard. Take extreme care that no untrusted app steals your key by reading the clipboard data. Clear the system clipboard immediately after pasting your key where you need it.\n\nAre you sure that you wish to proceed?", buttons=[ c_no_button, c_yes_button ])
+        c_yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
+        c_no_button = MDRectangleFlatButton(text=tr("No, go back"),font_size=dp(18))
+        c_dialog = MDDialog(text=tr("[b]Caution![/b]\n\nYour Identity key will be copied to the system clipboard. Take extreme care that no untrusted app steals your key by reading the clipboard data. Clear the system clipboard immediately after pasting your key where you need it.\n\nAre you sure that you wish to proceed?"), buttons=[ c_no_button, c_yes_button ])
         def c_dl_no(s):
             c_dialog.dismiss()
         def c_dl_yes(s):
             c_dialog.dismiss()
-            yes_button = MDRectangleFlatButton(text="OK")
-            dialog = MDDialog(text="Your Identity key was copied to the system clipboard", buttons=[ yes_button ])
+            yes_button = MDRectangleFlatButton(text=tr('OK'))
+            dialog = MDDialog(text=tr("Your Identity key was copied to the system clipboard"), buttons=[ yes_button ])
             def dl_yes(s):
                 dialog.dismiss()
             yes_button.bind(on_release=dl_yes)
@@ -113,9 +118,9 @@ class Keys():
             self.share_text(str(base64.b32encode(self.app.sideband.identity.get_private_key()).decode("utf-8")))
 
     def identity_restore_action(self, sender=None):
-        c_yes_button = MDRectangleFlatButton(text="Yes",font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
-        c_no_button = MDRectangleFlatButton(text="No, go back",font_size=dp(18))
-        c_dialog = MDDialog(text="[b]Caution![/b]\n\nYou are about to import a new Identity key into Sideband. The currently active key will be irreversibly destroyed, and you will loose your LXMF address if you have not already backed up your current Identity key.\n\nAre you sure that you wish to import the key?", buttons=[ c_no_button, c_yes_button ])
+        c_yes_button = MDRectangleFlatButton(text=tr("Yes"),font_size=dp(18), theme_text_color="Custom", line_color=self.app.color_reject, text_color=self.app.color_reject)
+        c_no_button = MDRectangleFlatButton(text=tr("No, go back"),font_size=dp(18))
+        c_dialog = MDDialog(text=tr("[b]Caution![/b]\n\nYou are about to import a new Identity key into Sideband. The currently active key will be irreversibly destroyed, and you will loose your LXMF address if you have not already backed up your current Identity key.\n\nAre you sure that you wish to import the key?"), buttons=[ c_no_button, c_yes_button ])
         def c_dl_no(s):
             c_dialog.dismiss()
         def c_dl_yes(s):
@@ -129,8 +134,8 @@ class Keys():
                 if new_id != None:
                     new_id.to_file(self.app.sideband.identity_path)
 
-                yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
-                dialog = MDDialog(text="[b]The provided Identity key data was imported[/b]\n\nThe app will now exit. Please restart Sideband to use the new Identity.", buttons=[ yes_button ])
+                yes_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
+                dialog = MDDialog(text=tr("[b]The provided Identity key data was imported[/b]\n\nThe app will now exit. Please restart Sideband to use the new Identity."), buttons=[ yes_button ])
                 def dl_yes(s):
                     dialog.dismiss()
                     self.app.quit_action(sender=self)
@@ -138,8 +143,8 @@ class Keys():
                 dialog.open()
 
             except Exception as e:
-                yes_button = MDRectangleFlatButton(text="OK",font_size=dp(18))
-                dialog = MDDialog(text="[b]The provided Identity key data was not valid[/b]\n\nThe error reported by Reticulum was:\n\n[i]"+str(e)+"[/i]\n\nNo Identity was imported into Sideband.", buttons=[ yes_button ])
+                yes_button = MDRectangleFlatButton(text=tr('OK'),font_size=dp(18))
+                dialog = MDDialog(text=tr("[b]The provided Identity key data was not valid[/b]\n\nThe error reported by Reticulum was:\n\n[i]")+str(e)+tr("[/i]\n\nNo Identity was imported into Sideband."), buttons=[ yes_button ])
                 def dl_yes(s):
                     dialog.dismiss()
                 yes_button.bind(on_release=dl_yes)

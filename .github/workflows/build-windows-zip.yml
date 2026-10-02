@@ -75,6 +75,22 @@ jobs:
                   assert any(n.endswith("/Sideband.exe") for n in archive.namelist()), f"Missing executable: {package}"
           PY
 
+      - name: Smoke test Windows executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = Get-ChildItem -Path 'Sideband_*/Sideband.exe' | Select-Object -First 1
+          if (-not $app) { throw 'Missing built executable' }
+          $config = Join-Path $env:RUNNER_TEMP 'sideband-smoke'
+          $process = Start-Process -FilePath $app.FullName -ArgumentList @('--config', $config, '--verbose') -PassThru
+          try {
+            Start-Sleep -Seconds 30
+            $process.Refresh()
+            if ($process.HasExited) { throw "Sideband exited during startup: $($process.ExitCode)" }
+          } finally {
+            if (-not $process.HasExited) { taskkill /PID $process.Id /T /F }
+          }
+
       - name: Upload Windows ZIP
         uses: actions/upload-artifact@v4
         with:
