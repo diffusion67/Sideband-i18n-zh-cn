@@ -19,6 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - run: python -m pip install -c recipes/android-build-constraints.txt build
       - run: python -m unittest discover -s tests -v
       - run: python -m compileall -q sbapp
 
@@ -61,14 +62,17 @@ jobs:
 
       - name: Install macOS system dependencies
         if: runner.os == 'macOS'
-        run: brew install codec2 opusfile portaudio
+        run: |
+          brew install codec2 opusfile portaudio
+          echo "SIDEBAND_MACOS_LIB_DIR=$(brew --prefix)/lib" >> "$GITHUB_ENV"
 
       - name: Install application and freezer
         run: |
           python -m pip install --upgrade pip
           # Keep NumPy on the 2.3 line; newer NumPy changes
           # its docstring decorator and breaks frozen startup.
-          python -m pip install "cx-Freeze==8.4.1" "kivy==2.3.1" "numpy==2.3.4" .
+          # Its pycparser hook also needs the lexer/parser tables removed in 3.0.
+          python -m pip install "cx-Freeze==8.4.1" "kivy==2.3.1" "numpy==2.3.4" "pycparser==2.23" .
           python -m pip check
 
       - name: Test freezer configuration
@@ -119,11 +123,15 @@ jobs:
           file "$app/Contents/MacOS/Sideband"
           lipo "$app/Contents/MacOS/Sideband" -verify_arch "${{ matrix.arch }}"
           while IFS= read -r -d '' library; do
+            printf "Checking architecture: %s\n" "$library"
+            lipo "$library" -archs
             lipo "$library" -verify_arch "${{ matrix.arch }}"
           done < <(find "$app/Contents/Resources/lib" -type f \( -name '*.so' -o -name '*.dylib' \) -print0)
           "$app/Contents/MacOS/Sideband" --version
           python tests/test_desktop_build.py \
-            --smoke "$app/Contents/MacOS/Sideband" --resources "$app/Contents/Resources"
+            --smoke "$app/Contents/MacOS/Sideband" --resources "$app/Contents/Resources" \
+            --architecture "${{ matrix.arch }}" \
+            --macos-report "dist/PLATFORM-VALIDATION-${{ matrix.platform }}.txt"
           mkdir -p dist
           cp "$dmg" "dist/Sideband-zh-CN-${{ matrix.platform }}.dmg"
 
@@ -150,5 +158,6 @@ jobs:
             dist/*.AppImage
             dist/*.dmg
             dist/SHA256SUMS
+            dist/PLATFORM-VALIDATION-macos*.txt
           if-no-files-found: error
           retention-days: 14

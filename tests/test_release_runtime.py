@@ -73,8 +73,8 @@ const files = {
   10: [windowsName],
   20: ['sideband-1.9.2-arm64-v8a-test-signed.apk', 'APK-SIGNATURE.txt'],
   30: ['Sideband-1.9.2-x86_64.AppImage'],
-  31: ['Sideband-zh-CN-macos-arm64.dmg'],
-  32: ['Sideband-zh-CN-macos-x86_64.dmg']
+  31: ['Sideband-zh-CN-macos-arm64.dmg', 'PLATFORM-VALIDATION-macos-arm64.txt'],
+  32: ['Sideband-zh-CN-macos-x86_64.dmg', 'PLATFORM-VALIDATION-macos-x86_64.txt']
 };
 const fakeFs = {
   mkdirSync() {},
@@ -175,7 +175,7 @@ const core = {
   try {
     await new Function('require', 'github', 'context', 'core', 'process',
       'return (async () => {\n' + script + '\n})()')(
-        isolatedRequire, github, {repo, payload: {workflow_run: {head_sha: sha}}},
+        isolatedRequire, github, {repo, payload: {workflow_run: {head_sha: sha, head_commit: {message: 'Release Sideband 1.9.2 Chinese test build (2026-10-02)' + (mode === 'title-prefix' ? ' extra' : '\n\nRelease notes')}}}},
         core, {env: {RUNNER_TEMP: '/fake-runner'}});
   } catch (caught) { error = caught.message; }
   process.stdout.write(JSON.stringify({
@@ -196,6 +196,12 @@ class ReleaseRuntimeTests(unittest.TestCase):
         )
         return json.loads(result.stdout)
 
+    def test_release_title_prefix_does_not_authorize_publication(self):
+        result = self.run_scenario("title-prefix")
+        self.assertIsNone(result["error"])
+        self.assertEqual(result["uploads"], [])
+        self.assertEqual(result["publicationCalls"], 0)
+
     def test_unsigned_android_cannot_be_published_as_this_test_release(self):
         result = self.run_scenario("unsigned")
         self.assertIn("installable test-signed", result["error"] or "")
@@ -210,7 +216,7 @@ class ReleaseRuntimeTests(unittest.TestCase):
         self.assertTrue(result["release"]["prerelease"])
         self.assertIn("SHA256SUMS", result["uploads"])
         self.assertIn("BUILD-PROVENANCE.json", result["uploads"])
-        self.assertEqual(len(result["assets"]), 8)
+        self.assertEqual(len(result["assets"]), 10)
 
     def test_new_main_commit_during_upload_leaves_release_draft(self):
         result = self.run_scenario("main-advanced")
@@ -238,7 +244,7 @@ class ReleaseRuntimeTests(unittest.TestCase):
         self.assertIsNone(result["error"])
         self.assertEqual(result["deletions"], [8])
         self.assertEqual(result["publicationCalls"], 1)
-        self.assertEqual(len(result["assets"]), 8)
+        self.assertEqual(len(result["assets"]), 10)
         self.assertTrue(all(asset["state"] == "uploaded" for asset in result["assets"]))
 
     def test_unexpected_existing_asset_blocks_publication(self):

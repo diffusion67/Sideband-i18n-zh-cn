@@ -51,6 +51,16 @@ class BuildWorkflowTests(unittest.TestCase):
                 self.assertIn("if-no-files-found: error", text)
                 self.assertNotIn("if: always()", text)
 
+    def test_signing_title_prefix_exits_before_creating_a_key(self):
+        script = step_script("build-android-apk.yml", "Test-sign the approved Android release")
+        env = dict(os.environ, RELEASE_COMMIT_MESSAGE=
+                   "Release Sideband 1.9.2 Chinese test build (2026-10-02) extra")
+        with tempfile.TemporaryDirectory() as tmp:
+            env["RUNNER_TEMP"] = tmp
+            subprocess.run(["bash", "-e", "-c", script], cwd=tmp, env=env,
+                           capture_output=True, check=True)
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+
     def test_test_signing_is_limited_to_approved_release_merge(self):
         text = (WORKFLOWS / "build-android-apk.yml").read_text()
         self.assertIn("Release Sideband 1.9.2 Chinese test build (2026-10-02)", text)
@@ -142,6 +152,13 @@ class BuildWorkflowTests(unittest.TestCase):
             result = subprocess.run(["bash", "-e", "-c", script], cwd=root,
                                     capture_output=True)
             self.assertNotEqual(result.returncode, 0)
+
+    def test_windows_ci_bundles_real_angle_backend_for_headless_runner(self):
+        spec = (ROOT / "sideband.spec").read_text()
+        workflow = (WORKFLOWS / "build-windows-zip.yml").read_text()
+        self.assertIn('angle.dep_bins', spec)
+        self.assertIn('kivy-deps.angle', workflow)
+        self.assertIn('KIVY_GL_BACKEND: angle_sdl2', workflow)
 
     def test_windows_performs_runtime_startup_check(self):
         text = (WORKFLOWS / "build-windows-zip.yml").read_text()

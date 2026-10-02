@@ -74,6 +74,8 @@ jobs:
 
       - name: Build APK
         env:
+          # p4a's CPython 3.11 cross wrapper needs PYTHONPATH for native stdlib modules.
+          PIP_CONSTRAINT: ${{ github.workspace }}/recipes/android-build-constraints.txt
           SIDEBAND_SKIP_SHARE_FETCH: 1
           SIDEBAND_LXST_SOURCE_DIR: ${{ github.workspace }}/dependencies/LXST
         run: |
@@ -96,8 +98,12 @@ jobs:
         if: >-
           github.event_name == 'push' && github.ref == 'refs/heads/main' &&
           startsWith(github.event.head_commit.message, 'Release Sideband 1.9.2 Chinese test build (2026-10-02)')
+        env:
+          RELEASE_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
+          release_title='Release Sideband 1.9.2 Chinese test build (2026-10-02)'
+          [[ "${RELEASE_COMMIT_MESSAGE%%$'\n'*}" == "$release_title" ]] || exit 0
           key="$RUNNER_TEMP/sideband-test-signing.jks"
           export SIDEBAND_TEST_STOREPASS=$(python -c 'import secrets; print(secrets.token_urlsafe(32))')
           echo "::add-mask::$SIDEBAND_TEST_STOREPASS"

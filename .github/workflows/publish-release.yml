@@ -34,6 +34,11 @@ jobs:
             const path = require('path');
             const { createHash } = require('crypto');
             const { execFileSync } = require('child_process');
+            const releaseTitle = 'Release Sideband 1.9.2 Chinese test build (2026-10-02)';
+            if (context.payload.workflow_run.head_commit.message.split('\n')[0] !== releaseTitle) {
+              core.info('This is not the explicitly approved release merge.');
+              return;
+            }
             const repo = context.repo;
             const sha = context.payload.workflow_run.head_sha;
             const main = await github.rest.git.getRef({...repo, ref: 'heads/main'});
@@ -89,7 +94,7 @@ jobs:
                     const file = path.join(dir, entry.name);
                     if (entry.isSymbolicLink()) throw new Error('Unexpected artifact symlink');
                     if (entry.isDirectory()) walk(file);
-                    else if (entry.isFile() && (/\.(zip|apk|AppImage|dmg)$/.test(entry.name) || entry.name === 'APK-SIGNATURE.txt')) {
+                    else if (entry.isFile() && (/\.(zip|apk|AppImage|dmg)$/.test(entry.name) || entry.name === 'APK-SIGNATURE.txt' || /^PLATFORM-VALIDATION-macos-(arm64|x86_64)\.txt$/.test(entry.name))) {
                       addFile(entry.name, fs.readFileSync(file));
                     }
                   }
@@ -100,6 +105,12 @@ jobs:
             for (const extension of ['.zip', '.apk', '.AppImage', '.dmg']) {
               if (![...assets.keys()].some(name => name.endsWith(extension))) {
                 throw new Error(`Missing validated platform artifact: ${extension}`);
+              }
+            }
+            for (const arch of ['arm64', 'x86_64']) {
+              if (!assets.has(`PLATFORM-VALIDATION-macos-${arch}.txt`) ||
+                  !assets.has(`Sideband-zh-CN-macos-${arch}.dmg`)) {
+                throw new Error(`Missing macOS installer or honest validation report: ${arch}`);
               }
             }
             const signature = assets.get('APK-SIGNATURE.txt')?.toString('utf8') || '';
@@ -120,7 +131,7 @@ jobs:
               '',
               '- Windows x86_64：便携 ZIP，完整解压后运行 Sideband.exe；未进行 Authenticode 签名。',
               '- Linux：文件名标明架构的 AppImage；兼容性受构建系统 libc 和本机音频/图形驱动限制。',
-              '- macOS：文件名标明架构的 DMG；未进行 Developer ID 签名或公证。',
+              '- macOS（实验性）：架构对应的 DMG，未进行 Developer ID 签名或公证。已验证包完整性、架构、资源和后台启动；受托管构建机加速 OpenGL 限制，图形界面可能未完成运行验证。每个架构的确切状态见 PLATFORM-VALIDATION 报告；音频通话未验证。',
               unsigned
                 ? '- Android arm64-v8a：此 APK 未签名，不能直接安装；需使用你授权的签名密钥签名。'
                 : '- Android arm64-v8a：签名信息见 APK-SIGNATURE.txt；请核对证书和测试签名说明，不能覆盖使用其他证书签名的版本。',
@@ -129,7 +140,7 @@ jobs:
               '公开签名证书信息：',
               signature,
               '',
-              '各平台具体检查见对应 CI 任务；Windows 为归档和进程启动检查，Linux/macOS 包含资源与启动检查，Android 为归档与签名检查。真实 Android 设备安装、通话、网络互联及所有桌面环境未逐一验证。',
+              '各平台具体检查见对应 CI 任务；Windows/Linux 包含归档、资源或真实 GUI 启动检查；macOS 验证范围以各架构的平台报告为准，不能将被阻塞的 GUI 检查视为通过；Android 为归档与签名检查。真实 Android 设备安装、通话、网络互联及所有桌面环境未逐一验证。',
               '下载后请按 SHA256SUMS 核验。构建来源见 BUILD-PROVENANCE.json。',
               '',
               ...runs.map(run => `- ${run.name}: ${run.html_url}`)

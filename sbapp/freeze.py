@@ -6,6 +6,7 @@ the Android and Windows build routes remain separate.
 
 import importlib.machinery
 import importlib.util
+import os
 from pathlib import Path
 import platform
 import re
@@ -77,6 +78,16 @@ if sys.platform == "linux":
     build_options["bin_includes"] = ["libmtdev.so"]
     options["bdist_appimage"] = {"target_name": "Sideband-zh-CN", "target_version": version}
 else:
+    if platform.machine() == "arm64":
+        # LXST's vendored PyOgg macOS binaries are Intel-only. Replace the
+        # codecs used by Sideband with the native libraries installed by CI;
+        # do not ship the incompatible optional Vorbis/FLAC resources.
+        build_options["excludes"].append("LXST.Codecs.libs.pyogg.libs.macos")
+        native_lib_dir = Path(os.environ.get("SIDEBAND_MACOS_LIB_DIR", "/opt/homebrew/lib"))
+        for name in ("libogg.0.dylib", "libopus.0.dylib", "libopusfile.0.dylib"):
+            build_options["include_files"].append((
+                str(native_lib_dir / name), "lib/LXST/Codecs/libs/pyogg/libs/macos/" + name,
+            ))
     options["bdist_mac"] = {
         "bundle_name": "Sideband",
         "iconfile": str(APP / "assets/icon.icns"),
