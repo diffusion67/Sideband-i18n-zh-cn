@@ -5,7 +5,10 @@ from pathlib import Path
 
 
 def excerpt(text):
-    text = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', text)
+    # Logs are downloaded to a file, never rendered as terminal control data.
+    text = re.sub(r'\x1b\].*?(?:\x07|\x1b\\)', '', text, flags=re.S)
+    text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', text)
+    text = re.sub(r'[\x00-\x08\x0b-\x1f\x7f]', '', text)
     text = text.split('# ENVIRONMENT:', 1)[0]
     lines = []
     private_key = False

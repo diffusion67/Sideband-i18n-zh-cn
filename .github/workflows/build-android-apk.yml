@@ -24,7 +24,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh api "repos/$GITHUB_REPOSITORY/actions/jobs/110734542599/logs" > "$RUNNER_TEMP/prior-android-build.log"; then
+          # ANSI is accepted only into a file, then stripped before any diagnostic upload.
+          if gh api --allow-escape-sequences "repos/$GITHUB_REPOSITORY/actions/jobs/110734542599/logs" > "$RUNNER_TEMP/prior-android-build.log"; then
             python .github/scripts/collect_android_error.py \
               "$RUNNER_TEMP/prior-android-build.log" "$RUNNER_TEMP/prior-android-error.txt"
           else

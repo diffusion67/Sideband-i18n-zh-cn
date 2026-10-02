@@ -23,6 +23,14 @@ class AndroidDiagnosticTests(unittest.TestCase):
                        'example-secret-body', 'example-secret', 'private-environment'):
             self.assertNotIn(secret, result)
 
+    def test_terminal_controls_are_removed_before_diagnostic_upload(self):
+        path = ROOT / '.github/scripts/collect_android_error.py'
+        spec = importlib.util.spec_from_file_location('android_diagnostics', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        result = module.excerpt('\x1b]52;c;example-clipboard-control\x07\x1b[31mCompiler error\x1b[0m\x00\n')
+        self.assertEqual(result, 'Compiler error\n')
+
     def test_android_failure_diagnostic_does_not_change_pipeline_exit_status(self):
         workflow = (ROOT / '.github/workflows/build-android-apk.yml').read_text()
         self.assertIn('set -o pipefail', workflow)
