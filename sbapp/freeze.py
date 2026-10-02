@@ -1,98 +1,94 @@
-import os
-import re
-import setuptools
-import cx_Freeze
+"""Native desktop bundles: python sbapp/freeze.py bdist_appimage|bdist_dmg.
+
+Run on the target OS/architecture. Desktop CI pins the cx_Freeze version;
+the Android and Windows build routes remain separate.
+"""
+
+import importlib.machinery
+import importlib.util
 from pathlib import Path
+import re
+import sys
 
-build_appimage = True
+import cx_Freeze
 
-def get_version() -> str:
-    version_file = os.path.join(
-        os.path.dirname(__file__), "main.py"
-    )
 
-    version_file_data = open(version_file, "rt", encoding="utf-8").read()
-    version_regex = r"(?<=^__version__ = ['\"])[^'\"]+(?=['\"]$)"
-    try:
-        version = re.findall(version_regex, version_file_data, re.M)[0]
-        return version
-    except IndexError:
-        raise ValueError(f"Unable to find version string in {version_file}.")
+APP = Path(__file__).resolve().parent
+ROOT = APP.parent
+source = (APP / "main.py").read_text(encoding="utf-8")
+version = re.search(r'^__version__ = [\'"]([^\'"]+)[\'"]$', source, re.M)
+if version is None:
+    raise ValueError("Unable to find the Sideband source version")
+version = version.group(1)
 
-def get_variant() -> str:
-    version_file = os.path.join(
-        os.path.dirname(__file__), "main.py"
-    )
+if sys.platform not in ("linux", "darwin"):
+    raise RuntimeError("Use winbuild.bat for Windows desktop packages")
 
-    version_file_data = open(version_file, "rt", encoding="utf-8").read()
-    version_regex = r"(?<=^__variant__ = ['\"])[^'\"]+(?=['\"]$)"
-    try:
-        version = re.findall(version_regex, version_file_data, re.M)[0]
-        return version
-    except IndexError:
-        return None
+plyer_platform = "macosx" if sys.platform == "darwin" else "linux"
+excludes = [
+    "tkinter", "pytest", "kivy.tests", "kivy.tools", "kivymd.tools",
+    "sbapp.freeze", "sbapp.service", "sbapp.build", "sbapp.dist",
+    "sbapp.plyer.platforms.android", "sbapp.plyer.platforms.ios",
+    "sbapp.plyer.platforms.win", "LXST.Platforms.android", "LXST.Platforms.windows",
+    "LXST.Codecs.libs.pyogg.libs.win32", "LXST.Codecs.libs.pyogg.libs.win_amd64",
+]
+if sys.platform == "linux":
+    excludes += ["sbapp.plyer.platforms.macosx", "LXST.Platforms.darwin",
+                 "LXST.Codecs.libs.pyogg.libs.macos"]
+else:
+    excludes += ["sbapp.plyer.platforms.linux", "LXST.Platforms.linux"]
 
-__version__ = get_version()
-__variant__ = get_variant()
-variant_str = ""
-if __variant__:
-    variant_str = " "+__variant__
+# LXST distributes several Python/CPU-specific filter libraries together.
+# Do not ask the native linker to process binaries for another platform.
+bin_excludes = []
+lxst = importlib.util.find_spec("LXST")
+if lxst is not None:
+    lxst_path = Path(lxst.origin).parent
+    native = importlib.machinery.PathFinder.find_spec("LXST.filterlib", [str(lxst_path)])
+    if native is None:
+        raise RuntimeError("LXST has no native filter library for this Python/platform")
+    bin_excludes = [p.name for p in lxst_path.glob("filterlib*")
+                    if p != Path(native.origin)]
 
-def glob_paths(pattern):
-    out_files = []
-    src_path = os.path.join(os.path.dirname(__file__), "kivymd")
-
-    for root, dirs, files in os.walk(src_path):
-        for file in files:
-            if file.endswith(pattern):
-                filepath = os.path.join(str(Path(*Path(root).parts[1:])), file)
-                out_files.append(filepath.split(f"kivymd{os.sep}")[1])
-
-    return out_files
-
-package_data = {
-"": [
-    "assets/*",
-    "assets/fonts/*",
-    "assets/geoids/*",
-    "kivymd/fonts/*",
-    "kivymd/images/*",
-    "kivymd/*",
-    "mapview/icons/*",
-    *glob_paths(".kv")
-    ]
+build_options = {
+    "path": [str(ROOT), str(APP), *sys.path],
+    "packages": ["kivy", "kivymd", "mapview", "RNS", "LXMF", "LXST",
+                 "sbapp.plyer.platforms." + plyer_platform],
+    "includes": ["LXST.filterlib", "mistune", "bs4", "pycodec2"],
+    "excludes": excludes,
+    "bin_excludes": bin_excludes,
+    # These are filesystem resources, including dynamically loaded KV files
+    # and the CJK font. Keep package files out of library.zip as well.
+    "include_files": [
+        (str(APP / "assets"), "lib/sbapp/assets"),
+        (str(APP / "kivymd"), "lib/kivymd"),
+        (str(APP / "mapview"), "lib/mapview"),
+    ],
+    "zip_exclude_packages": ["*"],
 }
-
-print("Freezing Sideband "+__version__+" "+variant_str)
-
-if build_appimage:
-    global_excludes = [".buildozer", "build", "dist"]
-    # Dependencies are automatically detected, but they might need fine-tuning.
-    appimage_options = {
-        "target_name": "Sideband",
-        "target_version": __version__+" "+variant_str,
-        "include_files": [],
-        "excludes": [],
-        "packages": ["kivy"],
-        "zip_include_packages": [],
-        "bin_path_excludes": global_excludes,
-    }
-
-    cx_Freeze.setup(
-        name="Sideband",
-        version=__version__,
-        author="Mark Qvist",
-        author_email="mark@unsigned.io",
-        url="https://unsigned.io/sideband",
-        executables=[
-            cx_Freeze.Executable(
-                script="main.py",
-                base="console",
-                target_name="Sideband",
-                shortcut_name="Sideband",
-                icon="assets/icon.png",
-                copyright="Copyright (c) 2024 Mark Qvist",
-            ),
+options = {"build_exe": build_options}
+if sys.platform == "linux":
+    options["bdist_appimage"] = {"target_name": "Sideband-zh-CN", "target_version": version}
+else:
+    options["bdist_mac"] = {
+        "bundle_name": "Sideband",
+        "iconfile": str(APP / "assets/icon.icns"),
+        "plist_items": [
+            ("CFBundleIdentifier", "io.unsigned.sideband"),
+            ("CFBundleShortVersionString", version),
+            ("NSMicrophoneUsageDescription", "Sideband 需要使用麦克风进行语音通话和录制语音消息。"),
         ],
-        options={"build_appimage": appimage_options},
-    )
+    }
+    options["bdist_dmg"] = {"volume_label": "Sideband-zh-CN-" + version,
+                            "applications_shortcut": True}
+
+cx_Freeze.setup(
+    name="Sideband", version=version, author="Mark Qvist",
+    url="https://unsigned.io/sideband",
+    executables=[cx_Freeze.Executable(
+        script=str(ROOT / "main.py"), base="console", target_name="Sideband",
+        icon=str(APP / "assets/icon.png"),
+        copyright="Copyright (c) Mark Qvist and contributors",
+    )],
+    options=options,
+)

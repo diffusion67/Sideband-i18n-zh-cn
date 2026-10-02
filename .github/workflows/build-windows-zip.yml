@@ -79,15 +79,33 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $app = Get-ChildItem -Path 'Sideband_*/Sideband.exe' | Select-Object -First 1
-          if (-not $app) { throw 'Missing built executable' }
-          $config = Join-Path $env:RUNNER_TEMP 'sideband-smoke'
-          $process = Start-Process -FilePath $app.FullName -ArgumentList @('--config', $config, '--verbose') -PassThru
+          $archive = Get-ChildItem -Path 'dist/*.zip' | Select-Object -First 1
+          $isolated = Join-Path $env:RUNNER_TEMP 'sideband-windows-smoke'
+          New-Item -ItemType Directory -Force -Path $isolated | Out-Null
+          Expand-Archive -LiteralPath $archive.FullName -DestinationPath $isolated
+          $app = Get-ChildItem -Path $isolated -Filter Sideband.exe -Recurse | Select-Object -First 1
+          if (-not $app) { throw 'Missing extracted executable' }
+          $config = Join-Path $isolated 'profile'
+          $env:KIVY_HOME = Join-Path $isolated 'kivy'
+          $env:PYTHONPATH = ''
+          $process = Start-Process -FilePath $app.FullName -WorkingDirectory $isolated -ArgumentList @('--config', $config, '--verbose') -PassThru
           try {
-            Start-Sleep -Seconds 30
-            $process.Refresh()
-            if ($process.HasExited) { throw "Sideband exited during startup: $($process.ExitCode)" }
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 90; $attempt++) {
+              Start-Sleep -Seconds 1
+              $process.Refresh()
+              if ($process.HasExited) { throw "Sideband exited during startup: $($process.ExitCode)" }
+              $logs = Get-ChildItem -Path "$env:KIVY_HOME/logs/*.txt" -ErrorAction SilentlyContinue
+              $started = $logs | Select-String -Pattern 'Start application main loop' -Quiet
+              $saved = Test-Path (Join-Path $config 'app_storage/sideband_config')
+              if ($started -and $saved -and $process.MainWindowTitle -match '^Sideband') {
+                $ready = $true
+                break
+              }
+            }
+            if (-not $ready) { throw 'Sideband did not reach its GUI main loop and save configuration' }
           } finally {
+            Get-ChildItem -Path "$env:KIVY_HOME/logs/*.txt" -ErrorAction SilentlyContinue | Get-Content
             if (-not $process.HasExited) { taskkill /PID $process.Id /T /F }
           }
 

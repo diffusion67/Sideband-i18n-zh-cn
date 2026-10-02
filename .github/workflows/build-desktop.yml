@@ -1,0 +1,154 @@
+name: Build Desktop Installers
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Offline regression tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall -q sbapp
+
+  build:
+    needs: tests
+    name: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            platform: linux-x86_64
+            arch: x86_64
+          - runner: macos-14
+            platform: macos-arm64
+            arch: arm64
+          - runner: macos-15-intel
+            platform: macos-x86_64
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      KIVY_NO_ARGS: "1"
+      LIBGL_ALWAYS_SOFTWARE: "1"
+    steps:
+      - name: Check out Sideband
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 patchelf xvfb libgl1-mesa-dri libsdl2-2.0-0 \
+            libopusfile0 portaudio19-dev libcodec2-dev libpulse0 xclip xsel
+
+      - name: Install macOS system dependencies
+        if: runner.os == 'macOS'
+        run: brew install codec2 opusfile portaudio
+
+      - name: Install application and freezer
+        run: |
+          python -m pip install --upgrade pip
+          # Keep NumPy on the 2.3 line; newer NumPy changes
+          # its docstring decorator and breaks frozen startup.
+          python -m pip install "cx-Freeze==8.4.1" "kivy==2.3.1" "numpy==2.3.4" .
+          python -m pip check
+
+      - name: Test freezer configuration
+        run: python -m unittest discover -s tests -p test_desktop_build.py -v
+
+      - name: Build Linux AppImage
+        if: runner.os == 'Linux'
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: python sbapp/freeze.py bdist_appimage
+
+      - name: Verify Linux AppImage and native GUI
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t images < <(find dist -maxdepth 1 -name '*.AppImage' -type f)
+          test "${#images[@]}" -eq 1
+          image=$(realpath "${images[0]}")
+          chmod +x "$image"
+          file "$image" | grep 'x86-64'
+          mkdir -p "$RUNNER_TEMP/sideband-appimage"
+          cd "$RUNNER_TEMP/sideband-appimage"
+          "$image" --appimage-extract >/dev/null
+          ./squashfs-root/Sideband --version
+          xvfb-run -a python "$GITHUB_WORKSPACE/tests/test_desktop_build.py" \
+            --smoke "$PWD/squashfs-root/Sideband" --resources "$PWD/squashfs-root"
+
+      - name: Build macOS DMG
+        if: runner.os == 'macOS'
+        run: python sbapp/freeze.py bdist_dmg
+
+      - name: Verify macOS DMG and native GUI
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg=$(find build -maxdepth 1 -name '*.dmg' -type f)
+          test -n "$dmg"
+          test "$(printf '%s\n' "$dmg" | wc -l | tr -d ' ')" -eq 1
+          hdiutil verify "$dmg"
+          mount="$RUNNER_TEMP/sideband-dmg"
+          mkdir -p "$mount"
+          hdiutil attach "$dmg" -readonly -nobrowse -mountpoint "$mount"
+          trap 'hdiutil detach "$mount"' EXIT
+          app="$mount/Sideband.app"
+          plutil -lint "$app/Contents/Info.plist"
+          file "$app/Contents/MacOS/Sideband"
+          lipo -verify_arch "${{ matrix.arch }}" "$app/Contents/MacOS/Sideband"
+          while IFS= read -r -d '' library; do
+            lipo -verify_arch "${{ matrix.arch }}" "$library"
+          done < <(find "$app/Contents/Resources/lib" -type f \( -name '*.so' -o -name '*.dylib' \) -print0)
+          "$app/Contents/MacOS/Sideband" --version
+          python tests/test_desktop_build.py \
+            --smoke "$app/Contents/MacOS/Sideband" --resources "$app/Contents/Resources"
+          mkdir -p dist
+          cp "$dmg" "dist/Sideband-zh-CN-${{ matrix.platform }}.dmg"
+
+      - name: Write artifact checksums
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          packages = sorted([*Path('dist').glob('*.AppImage'), *Path('dist').glob('*.dmg')])
+          assert len(packages) == 1, f'Expected one verified installer, got {packages}'
+          lines = []
+          for package in packages:
+              with package.open('rb') as stream:
+                  lines.append(f'{hashlib.file_digest(stream, "sha256").hexdigest()}  {package.name}\n')
+          Path('dist/SHA256SUMS').write_text(''.join(lines))
+          PY
+
+      - name: Upload verified desktop installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: sideband-desktop-${{ matrix.platform }}-${{ github.run_number }}
+          path: |
+            dist/*.AppImage
+            dist/*.dmg
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14

@@ -3,22 +3,10 @@ Sideband <img align="right" src="https://img.shields.io/badge/License-CC%20BY--N
 
 [简体中文说明](README.zh-CN.md)
 
-> [!WARNING]
-> Several hastily launched, incorrect, and in most cases entirely LLM-generated fakes of Sideband and associated tools are currently being circulated and marketed. Most of these "projects" violate the license that Sideband was published under, but claim independent ownership and license grants.
->
-> Such claims or grants are **not legally valid**, and **not** recognized by the Sideband author and copyright holder.
->
-> Any claimed assertion of copyright or grant of license that such projects are making are [void grants](https://reticulum.network/manual/brandolinis.html#void-grants-legal-foundations-of-machine-generated-code).
->
-> Both the violators themselves, and **all** downstream projects using the infringing derivatives, are **directly** and **personally** liable for the legal consequences.
->
-> For more detailed information, see the relevant sections of the [Brandolini's Reference](https://reticulum.network/manual/brandolinis.html) chapter of the Reticulum Manual. For software and projects recognized by the Reticulum community, see the [Programs Using Reticulum](https://reticulum.network/manual/software.html) chapter.
->
-> Do **not** use these "projects", they are a hazard to the entire ecosystem we have been carefully building over the last ten years.
+This is an unofficial Simplified Chinese localization fork of Sideband, maintained in `diffusion67/Sideband-i18n-zh-cn`. It preserves the upstream copyright and license. Fork builds are published only on [this repository’s Releases](https://github.com/diffusion67/Sideband-i18n-zh-cn/releases); upstream download links below refer to the original, unlocalized releases. The public source currently identifies itself as **1.9.2**, independently of newer upstream binary releases.
 
-*Due to the blatant copyright infringement, LLM-laundering and disrespect for open-source developers, the source code in this repository is no longer updated. All development is happening over Reticulum, where the latest source is always available.*
-
-*Packages and updates continue to ship on PyPI and over `rngit`. Compiled APKs, AppImages, wheels and portable exe bundles will continue to be published here as well.*
+> [!NOTE]
+> This fork tracks the publicly available GitHub source. Upstream states that current development takes place over Reticulum, while packages and compiled releases continue to be distributed through its published channels. See the [upstream repository notice](https://github.com/markqvist/Sideband#readme) for the maintainer's current development and distribution information.
 
 ---
 
