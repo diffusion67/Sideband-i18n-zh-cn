@@ -105,6 +105,7 @@ def smoke(executable, timeout=90, daemon=False, log_path=None):
                                 raise
                             break
                     log.flush()
+            startup_verified = False
             try:
                 deadline = time.monotonic() + timeout
                 ready_since = None
@@ -114,7 +115,6 @@ def smoke(executable, timeout=90, daemon=False, log_path=None):
                     assert "Traceback (most recent call last)" not in text, text
                     assert "falling back to Python filters" not in text, f"Native filter acceleration unavailable:\n{text}"
                     assert "Could not load pre-compiled LXST filters library" not in text, text
-                    known_graphics = not daemon and sys.platform == "darwin" and known_mac_graphics_failure(text)
                     if process.poll() is not None:
                         # poll() can observe exit after the previous PTY read.
                         # Classify all final output, including any late exception.
@@ -124,7 +124,9 @@ def smoke(executable, timeout=90, daemon=False, log_path=None):
                         if known_graphics:
                             raise MacGraphicsUnavailable(text)
                         raise AssertionError(f"Sideband exited before {'daemon' if daemon else 'GUI'} startup:\n{text}")
-                    assert known_graphics or not re.search(r"\[(?:ERROR|CRITICAL)\s*\]", text, re.I), text
+                    # Diagnostics can arrive in fragments. Classify generic
+                    # errors only after exit/full drain or before readiness;
+                    # never terminate a still-incomplete macOS diagnostic.
                     config = home / "sideband/app_storage"
                     if daemon:
                         ready = bool(re.search(r"Sideband Core .+started", text)) and all(
@@ -132,9 +134,11 @@ def smoke(executable, timeout=90, daemon=False, log_path=None):
                     else:
                         ready = "Start application main loop" in text and (config / "sideband_config").is_file()
                     if ready:
+                        assert not re.search(r"\[(?:ERROR|CRITICAL)\s*\]", text, re.I), text
                         if ready_since is None:
                             ready_since = time.monotonic()
                         if time.monotonic() - ready_since >= 3:
+                            startup_verified = True
                             print(f"Native {'daemon' if daemon else 'GUI'} startup and isolated configuration verified")
                             return text
                     time.sleep(0.25)
@@ -159,7 +163,7 @@ def smoke(executable, timeout=90, daemon=False, log_path=None):
                     Path(log_path).write_bytes(output.read_bytes())
                 final_text = output.read_text(errors="replace")
                 assert "Traceback (most recent call last)" not in final_text, final_text
-                allowed_graphics = not daemon and sys.platform == "darwin" and known_mac_graphics_failure(final_text)
+                allowed_graphics = not startup_verified and not daemon and sys.platform == "darwin" and known_mac_graphics_failure(final_text)
                 assert allowed_graphics or not re.search(r"\[(?:ERROR|CRITICAL)\s*\]", final_text, re.I), final_text
                 assert "falling back to Python filters" not in final_text, f"Native filter acceleration unavailable:\n{final_text}"
                 assert "Could not load pre-compiled LXST filters library" not in final_text, final_text
@@ -301,6 +305,51 @@ class DesktopBuildTests(unittest.TestCase):
                 smoke(Path("/fake/Sideband"), timeout=2)
         self.assertNotIsInstance(error.exception, MacGraphicsUnavailable)
         self.assertIn("late failure", str(error.exception))
+
+    def test_smoke_waits_for_complete_fragmented_mac_graphics_diagnostic(self):
+        prefix = ("[CRITICAL] [Window] Unable to find any valuable Window provider.\n"
+                  "sdl2 - RuntimeError: b'Failed creating OpenGL pixel format'\n")
+        suffix = "[CRITICAL] [App] Unable to get a Window, abort.\n"
+        class FragmentedProcess:
+            def __init__(self, *args, **kwargs):
+                self.output = os.dup(kwargs["stdout"])
+                self.polls = 0
+                os.write(self.output, prefix.encode())
+            def poll(self):
+                self.polls += 1
+                if self.polls == 1:
+                    return None
+                if self.polls == 2:
+                    os.write(self.output, suffix.encode())
+                    os.close(self.output)
+                return 1
+        with patch.object(sys, "platform", "darwin"), patch("subprocess.Popen", FragmentedProcess):
+            with self.assertRaises(MacGraphicsUnavailable) as error:
+                smoke(Path("/fake/Sideband"), timeout=2)
+        self.assertIn(suffix.strip(), str(error.exception))
+
+    def test_smoke_never_accepts_gui_readiness_with_graphics_errors(self):
+        log = ("[CRITICAL] [Window] Unable to find any valuable Window provider.\n"
+               "sdl2 - RuntimeError: b'Failed creating OpenGL pixel format'\n"
+               "[CRITICAL] [App] Unable to get a Window, abort.\n"
+               "Start application main loop\n")
+        class RunningProcess:
+            def __init__(self, command, **kwargs):
+                self.returncode = None
+                config = Path(command[command.index("--config") + 1]) / "app_storage"
+                config.mkdir(parents=True)
+                (config / "sideband_config").write_text("created")
+                os.write(kwargs["stdout"], log.encode())
+            def poll(self):
+                return self.returncode
+            def terminate(self):
+                self.returncode = -15
+            def wait(self, timeout=None):
+                return self.returncode
+        with patch.object(sys, "platform", "darwin"), patch("subprocess.Popen", RunningProcess):
+            with self.assertRaises(AssertionError) as error:
+                smoke(Path("/fake/Sideband"), timeout=4)
+        self.assertNotIsInstance(error.exception, MacGraphicsUnavailable)
 
     def test_known_mac_graphics_failure_does_not_hide_other_errors(self):
         log = "[CRITICAL] [Window] Unable to find any valuable Window provider.\n"

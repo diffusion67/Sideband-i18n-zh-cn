@@ -11,6 +11,32 @@ permissions:
   contents: read
 
 jobs:
+  previous-build-diagnostics:
+    # Temporary read-only diagnosis of a failed run whose full log is oversized.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve bounded prior compiler diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/actions/jobs/110734542599/logs" > "$RUNNER_TEMP/prior-android-build.log"; then
+            python .github/scripts/collect_android_error.py \
+              "$RUNNER_TEMP/prior-android-build.log" "$RUNNER_TEMP/prior-android-error.txt"
+          else
+            echo 'Prior job log could not be retrieved; use the current build diagnostics.' > "$RUNNER_TEMP/prior-android-error.txt"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sideband-android-prior-diagnostics-${{ github.run_number }}
+          path: ${{ runner.temp }}/prior-android-error.txt
+          if-no-files-found: error
+          retention-days: 3
+
   build:
     runs-on: ubuntu-22.04
     steps:
@@ -79,12 +105,15 @@ jobs:
           SIDEBAND_SKIP_SHARE_FETCH: 1
           SIDEBAND_LXST_SOURCE_DIR: ${{ github.workspace }}/dependencies/LXST
         run: |
+          set -o pipefail
           for attempt in 1 2 3; do
-            if make apk && make fetchapk; then
+            if (make apk && make fetchapk) 2>&1 | tee "$RUNNER_TEMP/sideband-android-build.log"; then
               exit 0
             fi
 
             if [ "$attempt" -eq 3 ]; then
+              python .github/scripts/collect_android_error.py \
+                "$RUNNER_TEMP/sideband-android-build.log" "$RUNNER_TEMP/sideband-android-error.txt"
               exit 1
             fi
 
@@ -161,6 +190,15 @@ jobs:
           done
           cat dist/APK-SIGNATURE.txt
           sha256sum dist/*.apk > dist/SHA256SUMS
+
+      - name: Upload bounded build diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sideband-android-diagnostics-${{ github.run_number }}
+          path: ${{ runner.temp }}/sideband-android-error.txt
+          if-no-files-found: warn
+          retention-days: 3
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
