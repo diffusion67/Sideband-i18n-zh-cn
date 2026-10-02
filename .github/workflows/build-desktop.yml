@@ -58,7 +58,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfuse2 patchelf xvfb libgl1-mesa-dri libsdl2-2.0-0 \
-            libopusfile0 portaudio19-dev libcodec2-dev libpulse0 libmtdev1 xclip xsel
+            libopusfile0 portaudio19-dev libcodec2-dev libpulse0 libmtdev1 xclip xsel x11-xserver-utils
 
       - name: Install macOS system dependencies
         if: runner.os == 'macOS'

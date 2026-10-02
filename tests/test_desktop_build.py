@@ -84,10 +84,11 @@ def smoke(executable, timeout=90, daemon=False, log_path=None):
             except BaseException:
                 if master is not None:
                     os.close(master)
-                raise
-            finally:
                 if slave is not None:
                     os.close(slave)
+                raise
+            # Keep our slave open until after the final read. On macOS, the
+            # last slave close flushes unread output, including late errors.
 
             def drain_daemon_output():
                 if master is not None:
@@ -139,16 +140,20 @@ def smoke(executable, timeout=90, daemon=False, log_path=None):
                     time.sleep(0.25)
                 raise AssertionError(f"{'Daemon' if daemon else 'GUI'} did not become ready in {timeout}s:\n{output.read_text(errors='replace')}")
             finally:
-                if process.poll() is None:
-                    process.terminate()
-                    try:
-                        process.wait(timeout=10)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        process.wait()
-                drain_daemon_output()
-                if master is not None:
-                    os.close(master)
+                try:
+                    if process.poll() is None:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=10)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.wait()
+                    drain_daemon_output()
+                finally:
+                    if slave is not None:
+                        os.close(slave)
+                    if master is not None:
+                        os.close(master)
                 if log_path is not None:
                     log.flush()
                     Path(log_path).write_bytes(output.read_bytes())
@@ -204,6 +209,48 @@ def freezer_config(platform, machine="x86_64"):
 
 
 class DesktopBuildTests(unittest.TestCase):
+    def test_smoke_retains_pty_slave_until_exit_and_closes_both_descriptors(self):
+        import pty
+        real_openpty = pty.openpty
+        descriptors = []
+        slave_open_at_exit = []
+        def recording_openpty():
+            pair = real_openpty()
+            descriptors.extend(pair)
+            return pair
+        class ExitingProcess:
+            def __init__(self, *args, **kwargs):
+                self.slave = kwargs["stdout"]
+            def poll(self):
+                try:
+                    os.fstat(self.slave)
+                    slave_open_at_exit.append(True)
+                except OSError:
+                    slave_open_at_exit.append(False)
+                return 1
+        with patch("pty.openpty", recording_openpty), patch("subprocess.Popen", ExitingProcess):
+            with self.assertRaisesRegex(AssertionError, "exited before"):
+                smoke(Path("/fake/Sideband"), timeout=2)
+        self.assertTrue(all(slave_open_at_exit), "Closing the last PTY slave can discard final output on macOS")
+        for descriptor in descriptors:
+            with self.assertRaises(OSError):
+                os.fstat(descriptor)
+
+    def test_smoke_closes_pty_descriptors_when_process_cannot_start(self):
+        import pty
+        real_openpty = pty.openpty
+        descriptors = []
+        def recording_openpty():
+            pair = real_openpty()
+            descriptors.extend(pair)
+            return pair
+        with patch("pty.openpty", recording_openpty):
+            with self.assertRaises(FileNotFoundError):
+                smoke(Path("/nonexistent-sideband-executable"), timeout=2)
+        for descriptor in descriptors:
+            with self.assertRaises(OSError):
+                os.fstat(descriptor)
+
     def test_macos_report_preserves_unverified_gui_and_actual_attempt_log(self):
         calls = []
         def fake_smoke(executable, daemon=False, log_path=None):
@@ -352,6 +399,10 @@ class DesktopBuildTests(unittest.TestCase):
         self.assertIn("libmtdev.so", options.get("bin_includes", []))
         text = (ROOT / ".github/workflows/build-desktop.yml").read_text()
         self.assertIn("libmtdev1", text)
+
+    def test_linux_installs_display_resolution_helper_for_real_gui_probe(self):
+        text = (ROOT / ".github/workflows/build-desktop.yml").read_text()
+        self.assertIn("x11-xserver-utils", text)
 
     def test_lipo_places_input_before_variadic_architectures(self):
         text = (ROOT / ".github/workflows/build-desktop.yml").read_text()
